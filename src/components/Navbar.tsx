@@ -177,15 +177,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               )}
             </button>
-
-            {/* Admin Portal Shortcut */}
-            <Link
-              href="/admin"
-              className="p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-cyan-400 transition"
-              title="Zenexis Admin Management Portal"
-            >
-              <ShieldCheckIcon className="w-4 h-4" />
-            </Link>
           </div>
         </div>
 

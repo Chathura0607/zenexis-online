@@ -433,7 +433,6 @@ export default function HomePage() {
                 <li><a href="#catalog" className="hover:text-cyan-400 transition">All Products</a></li>
                 <li><Link href="/school-season" className="hover:text-amber-400 transition">🎒 School Season Hub</Link></li>
                 <li><Link href="/track" className="hover:text-cyan-400 transition">Track Your Order</Link></li>
-                <li><Link href="/admin" className="hover:text-cyan-400 transition">Admin Portal</Link></li>
               </ul>
             </div>
 
