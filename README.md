@@ -67,6 +67,7 @@ Built with **Next.js 16 (App Router)**, **TypeScript**, **Tailwind CSS**, **PWA 
 - **Orders Manager:** Review incoming orders, Approve, Set Pickup Date & Time, 1-Click WhatsApp update to customer.
 - **School Booklist Requests:** Review uploaded paper photos, verify quoted amounts, set collection time slot.
 - **Push Broadcast:** Broadcast real-time announcements to all store visitors.
+- **⚡ Firestore & POS Sync:** Connect the existing Zenexis POS database for real-time live stock inventory sync.
 
 ---
 
@@ -91,17 +92,22 @@ http://localhost:3000
 
 ---
 
-## 🌐 Free Hosting Deployment (Vercel / GitHub)
+## 🌐 Free Hosting Deployment (GitHub Pages / Vercel)
 
-### Option A: Vercel (Recommended - 100% Free)
-1. Push this project to your GitHub repository:
+### Option A: GitHub Pages (100% Free - Hosted Directly on GitHub)
+The project includes an automated GitHub Actions deployment workflow (`.github/workflows/deploy.yml`):
+1. Push the project to your GitHub repository:
    ```bash
-   git init
-   git add .
-   git commit -m "Zenexis Online Store initial commit"
-   git remote add origin https://github.com/your-username/zenexis-online.git
+   git remote add origin https://github.com/<your-username>/zenexis-online.git
    git push -u origin main
    ```
+2. In your GitHub repository, go to **Settings** ➔ **Pages**.
+3. Under **Build and deployment** ➔ **Source**, select **GitHub Actions**.
+4. That's it! GitHub will automatically build and deploy your site to:
+   `https://<your-username>.github.io/zenexis-online`
+
+### Option B: Vercel (100% Free)
+1. Push this project to your GitHub repository.
 2. Go to [vercel.com](https://vercel.com) and log in with your GitHub account.
 3. Click **"Add New Project"** and select `zenexis-online`.
 4. Leave build settings as default (`npm run build`).
