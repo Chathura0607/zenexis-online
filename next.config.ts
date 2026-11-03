@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
-const repoName = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const isProd = process.env.NODE_ENV === 'production';
+const rawBasePath = process.env.NEXT_PUBLIC_BASE_PATH || (isProd ? '/zenexis-online' : '');
+const basePath = rawBasePath && rawBasePath !== '/' 
+  ? (rawBasePath.startsWith('/') ? rawBasePath : `/${rawBasePath}`) 
+  : undefined;
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -8,8 +12,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: repoName ? `/${repoName}` : undefined,
-  assetPrefix: repoName ? `/${repoName}/` : undefined,
+  basePath: basePath,
   experimental: {
     workerThreads: false,
     cpus: 1,
