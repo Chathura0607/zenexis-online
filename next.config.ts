@@ -10,9 +10,6 @@ const nextConfig: NextConfig = {
   },
   basePath: repoName ? `/${repoName}` : undefined,
   assetPrefix: repoName ? `/${repoName}/` : undefined,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   experimental: {
     workerThreads: false,
     cpus: 1,
