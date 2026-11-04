@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === 'production';
-const rawBasePath = process.env.NEXT_PUBLIC_BASE_PATH || (isProd ? '/zenexis-online' : '');
+// Check environment: GitHub Pages needs /zenexis-online subpath,
+// whereas Vercel (zenexis-admin.vercel.app) and local dev run at root /
+const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
+const defaultBasePath = isGithubActions ? '/zenexis-online' : '';
+
+const rawBasePath = process.env.NEXT_PUBLIC_BASE_PATH !== undefined 
+  ? process.env.NEXT_PUBLIC_BASE_PATH 
+  : defaultBasePath;
+
 const basePath = rawBasePath && rawBasePath !== '/' 
   ? (rawBasePath.startsWith('/') ? rawBasePath : `/${rawBasePath}`) 
   : undefined;

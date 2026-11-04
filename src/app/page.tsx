@@ -56,6 +56,15 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    // If opened on dedicated admin domain (e.g. zenexis-admin.vercel.app or admin.zenexis.lk)
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes('admin') || host.startsWith('admin.')) {
+        window.location.replace('/admin');
+        return;
+      }
+    }
+
     // Apply saved theme preference on load
     applyTheme(getSavedTheme());
     loadProducts();
