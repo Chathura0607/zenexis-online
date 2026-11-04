@@ -1,4 +1,4 @@
-import { Product, Order, SchoolListRequest, AppNotification, CartItem } from '@/types';
+import { Product, Order, SchoolListRequest, AppNotification, CartItem, CustomerProfile } from '@/types';
 import { INITIAL_PRODUCTS, INITIAL_NOTIFICATIONS, SHOP_CONFIG } from './constants';
 
 const KEYS = {
@@ -7,6 +7,8 @@ const KEYS = {
   SCHOOL_REQUESTS: 'zenexis_school_requests_v1',
   NOTIFICATIONS: 'zenexis_notifications_v1',
   CART: 'zenexis_cart_v1',
+  CUSTOMER: 'zenexis_customer_v1',
+  THEME: 'zenexis_theme_v1',
 };
 
 // Safe client-side check
@@ -269,5 +271,62 @@ export const markAllNotificationsRead = () => {
   const current = getStoredNotifications();
   const updated = current.map((n) => ({ ...n, read: true }));
   saveStoredNotifications(updated);
+};
+
+// --- CUSTOMER PROFILE & AUTH ---
+export const getLoggedInCustomer = (): CustomerProfile | null => {
+  if (!isClient) return null;
+  try {
+    const data = localStorage.getItem(KEYS.CUSTOMER);
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const saveLoggedInCustomer = (customer: CustomerProfile | null) => {
+  if (!isClient) return;
+  if (customer) {
+    localStorage.setItem(KEYS.CUSTOMER, JSON.stringify(customer));
+  } else {
+    localStorage.removeItem(KEYS.CUSTOMER);
+  }
+  window.dispatchEvent(new Event('zenexis_customer_updated'));
+};
+
+export const customerLogout = () => {
+  saveLoggedInCustomer(null);
+};
+
+// --- THEME (DARK / LIGHT MODE) ---
+export const getSavedTheme = (): 'dark' | 'light' => {
+  if (!isClient) return 'dark';
+  try {
+    const saved = localStorage.getItem(KEYS.THEME);
+    if (saved === 'light' || saved === 'dark') return saved;
+    // Default to dark mode for sleek gaming/tech store look
+    return 'dark';
+  } catch {
+    return 'dark';
+  }
+};
+
+export const saveTheme = (theme: 'dark' | 'light') => {
+  if (!isClient) return;
+  localStorage.setItem(KEYS.THEME, theme);
+  applyTheme(theme);
+  window.dispatchEvent(new Event('zenexis_theme_updated'));
+};
+
+export const applyTheme = (theme: 'dark' | 'light') => {
+  if (!isClient) return;
+  const root = document.documentElement;
+  if (theme === 'dark') {
+    root.classList.add('dark');
+    root.classList.remove('light');
+  } else {
+    root.classList.add('light');
+    root.classList.remove('dark');
+  }
 };
 

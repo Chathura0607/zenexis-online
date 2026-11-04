@@ -31,7 +31,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
     <div
       onClick={() => onOpenDetails(product)}
       id={`product-${product.id}`}
-      className="group relative bg-slate-900/70 hover:bg-slate-900 border border-slate-800/80 hover:border-cyan-500/40 rounded-2xl sm:rounded-3xl p-3 sm:p-4 transition-all duration-300 flex flex-col justify-between shadow-lg hover:shadow-cyan-950/20 cursor-pointer overflow-hidden"
+      className="group relative bg-white dark:bg-slate-900/70 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-cyan-500/50 rounded-2xl sm:rounded-3xl p-3 sm:p-4 transition-all duration-300 flex flex-col justify-between shadow-md dark:shadow-lg hover:shadow-cyan-950/20 cursor-pointer overflow-hidden"
     >
       {/* Top badges */}
       <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
@@ -91,28 +91,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
           </div>
 
           {/* Title */}
-          <h3 className="font-bold text-white text-xs sm:text-sm line-clamp-2 leading-snug group-hover:text-cyan-400 transition-colors">
+          <h3 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm line-clamp-2 leading-snug group-hover:text-cyan-500 transition-colors">
             {product.name}
           </h3>
 
           {/* Sinhala Sub-label */}
           {product.nameSi && (
-            <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5 font-light">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5 font-light">
               {product.nameSi}
             </p>
           )}
 
           {/* Short Specs / Description */}
-          <p className="text-[11px] text-slate-400 line-clamp-2 mt-1.5 leading-relaxed hidden sm:block">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1.5 leading-relaxed hidden sm:block">
             {product.description}
           </p>
         </div>
 
         {/* Price & Action Buttons */}
-        <div className="mt-3 pt-3 border-t border-slate-800/80 flex flex-col gap-2.5">
+        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-col gap-2.5">
           {/* Price */}
           <div className="flex items-baseline gap-2">
-            <span className="text-base sm:text-lg font-black text-white">
+            <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
               Rs. {product.price.toLocaleString()}
             </span>
             {product.originalPrice && (

@@ -20,6 +20,7 @@ import {
   removeFromCart,
   clearCart,
   createOrder,
+  getLoggedInCustomer,
 } from '@/lib/storage';
 import { SHOP_CONFIG } from '@/lib/constants';
 
@@ -52,6 +53,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   useEffect(() => {
     if (isOpen) {
       loadCart();
+      // Auto-fill logged in customer details
+      const customer = getLoggedInCustomer();
+      if (customer) {
+        if (customer.name) setCustomerName(customer.name);
+        if (customer.phone) setPhone(customer.phone);
+        if (customer.address) setAddress(customer.address);
+        if (customer.city) setCity(customer.city);
+      }
       // Set default pickup date as today/tomorrow
       const now = new Date();
       setPickupDate(now.toISOString().split('T')[0]);

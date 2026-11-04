@@ -113,3 +113,21 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export interface CustomerProfile {
+  id: string;
+  name: string;
+  email?: string;
+  phone: string;
+  avatar?: string;
+  authProvider: 'google' | 'password' | 'guest';
+  address?: string;
+  city?: string;
+  savedAddresses?: Array<{
+    id: string;
+    label: string;
+    address: string;
+    city: string;
+  }>;
+  createdAt: string;
+}
+

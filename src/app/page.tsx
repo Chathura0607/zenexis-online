@@ -27,9 +27,10 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { NotificationModal } from '@/components/NotificationModal';
 import { OrderSuccessModal } from '@/components/OrderSuccessModal';
 import { AIChatModal } from '@/components/AIChatModal';
-import { SchoolSeasonSection } from '@/components/SchoolSeasonSection';
-import { Product, Order } from '@/types';
-import { getStoredProducts } from '@/lib/storage';
+import { AuthModal } from '@/components/AuthModal';
+import { CustomerProfileDrawer } from '@/components/CustomerProfileDrawer';
+import { Product, Order, CustomerProfile } from '@/types';
+import { getStoredProducts, getLoggedInCustomer, getSavedTheme, applyTheme } from '@/lib/storage';
 import { CATEGORIES, SHOP_CONFIG } from '@/lib/constants';
 import { createWhatsAppUrl } from '@/lib/whatsapp';
 
@@ -43,17 +44,29 @@ export default function HomePage() {
   // Modals state
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isNotifsOpen, setIsNotifsOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [customer, setCustomer] = useState<CustomerProfile | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
   const loadProducts = () => {
     setProducts(getStoredProducts());
+    setCustomer(getLoggedInCustomer());
   };
 
   useEffect(() => {
+    // Apply saved theme preference on load
+    applyTheme(getSavedTheme());
     loadProducts();
+
+    const handleCustUpdate = () => setCustomer(getLoggedInCustomer());
     window.addEventListener('zenexis_products_updated', loadProducts);
-    return () => window.removeEventListener('zenexis_products_updated', loadProducts);
+    window.addEventListener('zenexis_customer_updated', handleCustUpdate);
+    return () => {
+      window.removeEventListener('zenexis_products_updated', loadProducts);
+      window.removeEventListener('zenexis_customer_updated', handleCustUpdate);
+    };
   }, []);
 
   // Filter products
@@ -93,7 +106,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950 pb-16 sm:pb-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950 pb-16 sm:pb-0 transition-colors">
       {/* PWA Prompt */}
       <PWAInstallPrompt />
 
@@ -101,6 +114,8 @@ export default function HomePage() {
       <Navbar
         onOpenCart={() => setIsCartOpen(true)}
         onOpenNotifications={() => setIsNotifsOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         activeCategory={activeCategory}
@@ -267,8 +282,36 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* SCHOOL SEASON SPOTLIGHT HUB */}
-        <SchoolSeasonSection />
+        {/* SCHOOL SEASON PROMO BANNER (Compact & Elegant - Focus remains on products) */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 relative z-20">
+          <div className="relative rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-600/15 border border-amber-500/30 p-5 sm:p-6 backdrop-blur-xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-center md:text-left">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-2xl shrink-0">
+                🎒
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider mb-1">
+                  10% School Season Discount
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                  Got a School Booklist? Avoid Long Shop Crowds & Queues!
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Upload a photo of your handwritten paper list. Our team will pack everything with special discounts for quick pickup in Ambalangoda.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <Link
+                href="/school-season"
+                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition transform hover:scale-105 flex items-center gap-2 whitespace-nowrap"
+              >
+                <span>Upload Paper List</span>
+                <span>➔</span>
+              </Link>
+            </div>
+          </div>
+        </section>
 
         {/* PRODUCT CATALOG SECTION */}
         <section id="catalog" className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -506,6 +549,22 @@ export default function HomePage() {
       <OrderSuccessModal
         order={completedOrder}
         onClose={() => setCompletedOrder(null)}
+      />
+
+      {/* Customer Authentication Modal (Google / Password) */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={(loggedCust) => {
+          setCustomer(loggedCust);
+        }}
+      />
+
+      {/* Customer Profile & Order History Drawer */}
+      <CustomerProfileDrawer
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        customer={customer}
       />
     </div>
   );
