@@ -115,7 +115,7 @@ export const SchoolSeasonSection: React.FC = () => {
   };
 
   return (
-    <section id="school-season" className="py-12 sm:py-16 bg-slate-950/60 relative overflow-hidden">
+    <section id="school-season" className="py-12 sm:py-16 bg-slate-50 dark:bg-slate-950/60 relative overflow-hidden transition-colors">
       {/* Decorative gradients */}
       <div className="absolute top-1/2 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -123,7 +123,7 @@ export const SchoolSeasonSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-bold mb-3">
             <span>🎒</span>
             <span>School Term & Season Ordering Hub</span>
             <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black">
@@ -131,21 +131,21 @@ export const SchoolSeasonSection: React.FC = () => {
             </span>
           </div>
 
-          <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
             Skip the Shop Crowds & Queues!
           </h2>
-          <p className="text-sm sm:text-base text-slate-300 mt-2 leading-relaxed">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
             Upload a photo of your child&apos;s handwritten school book list. Our AI and team prepare everything beforehand with special discounts. Just walk in and collect at your chosen time slot!
           </p>
 
           {/* Tab Selector */}
-          <div className="mt-6 inline-flex p-1 bg-slate-900 border border-slate-800 rounded-2xl">
+          <div className="mt-6 inline-flex p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
             <button
               onClick={() => setActiveTab('upload')}
               className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 ${
                 activeTab === 'upload'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <CameraIcon className="w-4 h-4" />
@@ -156,7 +156,7 @@ export const SchoolSeasonSection: React.FC = () => {
               className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 ${
                 activeTab === 'bundles'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <BookOpenIcon className="w-4 h-4" />
@@ -169,34 +169,34 @@ export const SchoolSeasonSection: React.FC = () => {
         {activeTab === 'upload' && (
           <div className="max-w-4xl mx-auto">
             {submittedRequest ? (
-              <div className="bg-slate-900/90 border border-amber-500/40 rounded-3xl p-6 sm:p-10 shadow-2xl text-center space-y-6">
-                <div className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+              <div className="bg-white dark:bg-slate-900/90 border border-amber-500/40 rounded-3xl p-6 sm:p-10 shadow-2xl text-center space-y-6">
+                <div className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500/30 text-amber-500 dark:text-amber-400 flex items-center justify-center mx-auto">
                   <CheckIcon className="w-8 h-8 stroke-[3]" />
                 </div>
-                <h3 className="text-2xl font-black text-white">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white">
                   Booklist Request #{submittedRequest.requestNumber} Received!
                 </h3>
-                <p className="text-sm text-slate-300 max-w-lg mx-auto">
+                <p className="text-sm text-slate-600 dark:text-slate-300 max-w-lg mx-auto">
                   Thank you <strong>{submittedRequest.customerName}</strong>! Your school book list has been scheduled.
                 </p>
 
                 {/* Estimation Card */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-950/80 rounded-2xl border border-slate-800 text-left text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 text-left text-xs">
                   <div>
-                    <span className="text-slate-400 block mb-1">Estimated Total:</span>
-                    <span className="text-base font-bold text-white">
+                    <span className="text-slate-500 dark:text-slate-400 block mb-1">Estimated Total:</span>
+                    <span className="text-base font-bold text-slate-900 dark:text-white">
                       Rs. {submittedRequest.quotedTotal?.toLocaleString()}
                     </span>
                   </div>
                   <div>
-                    <span className="text-amber-400 block mb-1">10% Season Discount:</span>
-                    <span className="text-base font-bold text-emerald-400">
+                    <span className="text-amber-600 dark:text-amber-400 block mb-1">10% Season Discount:</span>
+                    <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
                       -Rs. {submittedRequest.discount?.toLocaleString()}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block mb-1">Final Amount:</span>
-                    <span className="text-lg font-black text-cyan-400">
+                    <span className="text-slate-500 dark:text-slate-400 block mb-1">Final Amount:</span>
+                    <span className="text-lg font-black text-cyan-600 dark:text-cyan-400">
                       Rs. {submittedRequest.finalTotal?.toLocaleString()}
                     </span>
                   </div>
@@ -204,15 +204,15 @@ export const SchoolSeasonSection: React.FC = () => {
 
                 {/* Pickup Date & Slot */}
                 <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-left text-xs space-y-1.5">
-                  <div className="flex items-center gap-2 font-bold text-amber-300">
-                    <ClockIcon className="w-4 h-4 text-amber-400" />
+                  <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                    <ClockIcon className="w-4 h-4 text-amber-500" />
                     <span>Scheduled Collection Time Slot:</span>
                   </div>
-                  <p className="text-slate-200">
+                  <p className="text-slate-700 dark:text-slate-200">
                     Ready on: <strong>{submittedRequest.scheduledPickupDate}</strong> between <strong>{submittedRequest.scheduledPickupTime}</strong>
                   </p>
-                  <p className="text-slate-400 text-[11px] flex items-center gap-1">
-                    <MapPinIcon className="w-3.5 h-3.5 text-amber-400" />
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1">
+                    <MapPinIcon className="w-3.5 h-3.5 text-amber-500" />
                     <span>Pickup Location: Zenexis Showroom - Ambalangoda</span>
                   </p>
                 </div>
@@ -231,7 +231,7 @@ export const SchoolSeasonSection: React.FC = () => {
                     <WhatsAppIcon className="w-5 h-5 fill-white" />
                     <span>Confirm & Send via WhatsApp to 0701120945</span>
                   </a>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Our Ambalangoda team will pack your books and notify you when ready!
                   </p>
                   <button
@@ -240,20 +240,20 @@ export const SchoolSeasonSection: React.FC = () => {
                       setImagePreview(null);
                       setAnalyzedData(null);
                     }}
-                    className="text-xs text-slate-400 hover:text-white underline block mx-auto pt-2"
+                    className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline block mx-auto pt-2"
                   >
                     Submit another list
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-6">
+              <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-6">
                 {/* Upload Area */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
                     1. Upload or Take Photo of Handwritten Booklist:
                   </label>
-                  <div className="relative border-2 border-dashed border-slate-700 hover:border-amber-500/50 rounded-2xl p-6 text-center transition bg-slate-950/40">
+                  <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-amber-500/50 rounded-2xl p-6 text-center transition bg-slate-50 dark:bg-slate-950/40">
                     {imagePreview ? (
                       <div className="space-y-4">
                         <div className="relative max-h-64 mx-auto rounded-xl overflow-hidden border border-slate-800 bg-slate-900 inline-block">
@@ -375,10 +375,10 @@ export const SchoolSeasonSection: React.FC = () => {
 
                 {/* Missing Items Box */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     2. Any specific or missing items not on the regular list?
                   </label>
-                  <p className="text-[11px] text-slate-400 mb-2">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                     If there is an uncommon atlas, specific brand of water colors, or items we should source for you, write here:
                   </p>
                   <div className="flex gap-2">
@@ -393,12 +393,12 @@ export const SchoolSeasonSection: React.FC = () => {
                         }
                       }}
                       placeholder="e.g. Cambridge School Atlas Sinhala, Camel poster colors 12s..."
-                      className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500"
                     />
                     <button
                       type="button"
                       onClick={handleAddMissingItem}
-                      className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1"
+                      className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs font-bold rounded-xl transition flex items-center gap-1"
                     >
                       <PlusIcon className="w-3.5 h-3.5" />
                       <span>Add</span>
@@ -410,13 +410,13 @@ export const SchoolSeasonSection: React.FC = () => {
                       {missingItems.map((item, idx) => (
                         <span
                           key={idx}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-medium"
                         >
                           <span>{item}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveMissingItem(idx)}
-                            className="text-amber-400 hover:text-white"
+                            className="text-amber-600 dark:text-amber-400 hover:text-slate-900 dark:hover:text-white"
                           >
                             <XIcon className="w-3 h-3" />
                           </button>
@@ -427,8 +427,8 @@ export const SchoolSeasonSection: React.FC = () => {
                 </div>
 
                 {/* Customer Information Form */}
-                <form onSubmit={handleSubmitRequest} className="space-y-4 pt-4 border-t border-slate-800">
-                  <label className="block text-xs font-bold text-slate-300">
+                <form onSubmit={handleSubmitRequest} className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                     3. Contact Details for Pickup Notification:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -439,7 +439,7 @@ export const SchoolSeasonSection: React.FC = () => {
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="Parent / Customer Name *"
-                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                       />
                     </div>
                     <div>
@@ -449,7 +449,7 @@ export const SchoolSeasonSection: React.FC = () => {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="WhatsApp / Phone Number (0701120945) *"
-                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                       />
                     </div>
                     <div>
@@ -458,14 +458,14 @@ export const SchoolSeasonSection: React.FC = () => {
                         value={studentName}
                         onChange={(e) => setStudentName(e.target.value)}
                         placeholder="Student Name (Optional)"
-                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                       />
                     </div>
                     <div>
                       <select
                         value={schoolGrade}
                         onChange={(e) => setSchoolGrade(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                       >
                         {SCHOOL_GRADES.map((grade) => (
                           <option key={grade} value={grade}>
@@ -482,7 +482,7 @@ export const SchoolSeasonSection: React.FC = () => {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Additional instructions (e.g. prefer Atlas brand books only, blue pens only)"
-                      className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 resize-none"
+                      className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 resize-none"
                     />
                   </div>
 
@@ -494,8 +494,8 @@ export const SchoolSeasonSection: React.FC = () => {
                     <WhatsAppIcon className="w-5 h-5 fill-slate-950" />
                   </button>
 
-                  <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400">
-                    <ShieldCheckIcon className="w-4 h-4 text-emerald-400" />
+                  <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <ShieldCheckIcon className="w-4 h-4 text-emerald-500" />
                     <span>Prepared at Zenexis Showroom • Ambalangoda</span>
                   </div>
                 </form>
@@ -508,46 +508,46 @@ export const SchoolSeasonSection: React.FC = () => {
         {activeTab === 'bundles' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Primary Bundle */}
-            <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 transition flex flex-col justify-between">
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 shadow-lg dark:shadow-none transition flex flex-col justify-between">
               <div>
-                <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
                   Primary Pack
                 </span>
-                <h3 className="text-xl font-black text-white mt-3">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mt-3">
                   Grade 1 - 5 Complete Stationery Kit
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   All textbooks, CR 80pg single rule, square math books, color pencils & essentials.
                 </p>
 
-                <ul className="mt-4 space-y-1.5 text-xs text-slate-300">
+                <ul className="mt-4 space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
                   <li className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4 text-emerald-400" />
+                    <CheckIcon className="w-4 h-4 text-emerald-500" />
                     <span>6x Atlas CR 80pg Single Rule</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4 text-emerald-400" />
+                    <CheckIcon className="w-4 h-4 text-emerald-500" />
                     <span>2x Atlas CR 80pg Square Rule</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4 text-emerald-400" />
+                    <CheckIcon className="w-4 h-4 text-emerald-500" />
                     <span>1x Drawing Book 40 Pages</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4 text-emerald-400" />
+                    <CheckIcon className="w-4 h-4 text-emerald-500" />
                     <span>1x Faber-Castell 12 Color Pencils Box</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4 text-emerald-400" />
+                    <CheckIcon className="w-4 h-4 text-emerald-500" />
                     <span>3x Pencils + Eraser + Sharpener + Ruler</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <span className="text-2xl font-black text-white">Rs. 4,950</span>
-                  <span className="text-xs text-slate-500 line-through ml-2">Rs. 5,800</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white">Rs. 4,950</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500 line-through ml-2">Rs. 5,800</span>
                 </div>
                 <a
                   href={createWhatsAppUrl(
@@ -556,7 +556,7 @@ export const SchoolSeasonSection: React.FC = () => {
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1.5"
                 >
                   <WhatsAppIcon className="w-4 h-4 fill-slate-950" />
                   <span>Order Bundle</span>
@@ -565,21 +565,21 @@ export const SchoolSeasonSection: React.FC = () => {
             </div>
 
             {/* Secondary Bundle */}
-            <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 transition flex flex-col justify-between">
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 shadow-lg dark:shadow-none transition flex flex-col justify-between">
               <div>
-                <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20">
+                <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20">
                   Secondary / O/L Pack
                 </span>
-                <h3 className="text-xl font-black text-white mt-3">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mt-3">
                   Grade 6 - 11 Complete Term Pack
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   10x CR 120pg books, geometry math box, blue pen packs, files & paper reams.
                 </p>
 
-                <ul className="mt-4 space-y-1.5 text-xs text-slate-300">
+                <ul className="mt-4 space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
                   <li className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4 text-emerald-400" />
+                    <CheckIcon className="w-4 h-4 text-emerald-500" />
                     <span>10x Atlas CR 120pg Single Rule</span>
                   </li>
                   <li className="flex items-center gap-2">
@@ -601,10 +601,10 @@ export const SchoolSeasonSection: React.FC = () => {
                 </ul>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <span className="text-2xl font-black text-white">Rs. 7,800</span>
-                  <span className="text-xs text-slate-500 line-through ml-2">Rs. 9,200</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white">Rs. 7,800</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500 line-through ml-2">Rs. 9,200</span>
                 </div>
                 <a
                   href={createWhatsAppUrl(
@@ -613,7 +613,7 @@ export const SchoolSeasonSection: React.FC = () => {
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1.5"
                 >
                   <WhatsAppIcon className="w-4 h-4 fill-slate-950" />
                   <span>Order Bundle</span>

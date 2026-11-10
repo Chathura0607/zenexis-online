@@ -24,12 +24,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full dark" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var saved = localStorage.getItem('zenexis_theme_v1');
+                  var theme = saved === 'light' ? 'light' : 'dark';
+                  var root = document.documentElement;
+                  root.classList.remove('light', 'dark');
+                  root.classList.add(theme);
+                  root.setAttribute('data-theme', theme);
+                  root.style.colorScheme = theme;
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
-      <body className="min-h-full bg-slate-950 text-slate-100 antialiased font-sans selection:bg-cyan-500 selection:text-white">
+      <body className="min-h-full bg-slate-50 dark:bg-[#070b14] text-slate-900 dark:text-slate-100 antialiased font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-200">
         {children}
       </body>
     </html>

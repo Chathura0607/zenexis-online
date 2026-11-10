@@ -324,9 +324,13 @@ export const applyTheme = (theme: 'dark' | 'light') => {
   if (theme === 'dark') {
     root.classList.add('dark');
     root.classList.remove('light');
+    root.setAttribute('data-theme', 'dark');
+    root.style.colorScheme = 'dark';
   } else {
     root.classList.add('light');
     root.classList.remove('dark');
+    root.setAttribute('data-theme', 'light');
+    root.style.colorScheme = 'light';
   }
 };
 

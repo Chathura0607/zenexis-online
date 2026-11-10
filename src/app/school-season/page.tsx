@@ -17,7 +17,7 @@ export default function SchoolSeasonPage() {
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pb-16 sm:pb-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070b14] text-slate-900 dark:text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pb-16 sm:pb-0 transition-colors">
       <Navbar
         onOpenCart={() => setIsCartOpen(true)}
         onOpenNotifications={() => setIsNotifsOpen(true)}
