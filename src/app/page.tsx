@@ -301,8 +301,8 @@ export default function HomePage() {
                       <div className="flex items-center gap-3">
                         <span className="text-xl">📱</span>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-white">Nokia/Itel Phones & 20W PD Chargers</h4>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400">Keypad phones, fast chargers & cables</p>
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white">Smartphones & Accessories</h4>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">Keypad & smartphones, fast chargers & cables</p>
                         </div>
                       </div>
                       <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">TRCSL Approved</span>
