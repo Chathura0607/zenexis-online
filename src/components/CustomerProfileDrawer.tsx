@@ -11,6 +11,7 @@ import {
   SunIcon,
   MoonIcon,
   ShieldCheckIcon,
+  DownloadIcon,
 } from './icons';
 import { CustomerProfile, Order } from '@/types';
 import { customerLogout, getStoredOrders, getSavedTheme, saveTheme } from '@/lib/storage';
@@ -134,6 +135,33 @@ export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({
                 className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 transition flex items-center gap-1.5"
               >
                 <span>Switch to {theme === 'dark' ? 'Light' : 'Dark'}</span>
+              </button>
+            </div>
+
+            {/* Install Zenexis App Card */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/40 to-blue-950/30 border border-cyan-500/30 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+                  <DownloadIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Install Zenexis App</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    1-Tap fast access on your phone or PC
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('zenexis_open_install_prompt'));
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 transition flex items-center gap-1 shadow-sm"
+              >
+                <span>Install</span>
               </button>
             </div>
 

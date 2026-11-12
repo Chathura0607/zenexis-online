@@ -21,7 +21,6 @@ import {
 } from '@/components/icons';
 import { Navbar } from '@/components/Navbar';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
-import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { CartDrawer } from '@/components/CartDrawer';
@@ -209,9 +208,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950 pb-24 sm:pb-0 transition-colors">
-      {/* PWA Prompt */}
-      <PWAInstallPrompt />
-
       {/* Navbar */}
       <Navbar
         onOpenCart={() => setIsCartOpen(true)}
@@ -717,6 +713,18 @@ export default function HomePage() {
                 <li><a href="#catalog" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition">All Products</a></li>
                 <li><Link href="/school-season" className="hover:text-amber-600 dark:hover:text-amber-400 transition">🎒 School Season Hub</Link></li>
                 <li><Link href="/track" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition">Track Your Order</Link></li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('zenexis_open_install_prompt'));
+                      }
+                    }}
+                    className="hover:text-cyan-600 dark:hover:text-cyan-400 transition text-left flex items-center gap-1 text-cyan-500 font-semibold"
+                  >
+                    <span>📲 Install Zenexis App</span>
+                  </button>
+                </li>
               </ul>
             </div>
 

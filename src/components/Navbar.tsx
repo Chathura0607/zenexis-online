@@ -12,6 +12,7 @@ import {
   MoonIcon,
   UserIcon,
   HeartIcon,
+  DownloadIcon,
 } from './icons';
 import { SHOP_CONFIG } from '@/lib/constants';
 import {
@@ -169,6 +170,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <PackageIcon className="w-4 h-4 text-cyan-500" />
               <span>Track</span>
             </Link>
+
+            {/* Install / Download App Quick Action */}
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('zenexis_open_install_prompt'));
+                }
+              }}
+              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 border border-cyan-500/30 text-xs font-semibold transition"
+              title="Download & Install Zenexis App on Phone or PC"
+            >
+              <DownloadIcon className="w-4 h-4 text-cyan-500" />
+              <span>Install App</span>
+            </button>
 
             {/* WhatsApp Quick Chat */}
             <a

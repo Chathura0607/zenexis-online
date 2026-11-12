@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full bg-slate-50 dark:bg-[#070b14] text-slate-900 dark:text-slate-100 antialiased font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-200">
+        <PWAInstallPrompt />
         {children}
       </body>
     </html>
