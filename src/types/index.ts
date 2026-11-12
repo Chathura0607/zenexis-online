@@ -113,6 +113,17 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export interface ProductReview {
+  id: string;
+  productId: string;
+  customerName: string;
+  city?: string;
+  rating: number; // 1 - 5
+  comment: string;
+  verifiedPurchase: boolean;
+  createdAt: string;
+}
+
 export interface CustomerProfile {
   id: string;
   name: string;

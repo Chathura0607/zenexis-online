@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product } from '@/types';
-import { ShoppingCartIcon, WhatsAppIcon, StarIcon, CheckIcon, EyeIcon } from './icons';
-import { addToCart } from '@/lib/storage';
+import { ShoppingCartIcon, WhatsAppIcon, StarIcon, CheckIcon, EyeIcon, HeartIcon } from './icons';
+import { addToCart, toggleWishlist, isInWishlist, addRecentlyViewed } from '@/lib/storage';
 import { generateDirectWhatsAppQueryUrl } from '@/lib/whatsapp';
 import { getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 
@@ -14,12 +14,27 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails }) => {
   const [added, setAdded] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+
+  useEffect(() => {
+    setIsFavorited(isInWishlist(product.id));
+    const handleWishlistChange = () => {
+      setIsFavorited(isInWishlist(product.id));
+    };
+    window.addEventListener('zenexis_wishlist_updated', handleWishlistChange);
+    return () => window.removeEventListener('zenexis_wishlist_updated', handleWishlistChange);
+  }, [product.id]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(product, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
+  };
+
+  const handleCardClick = () => {
+    addRecentlyViewed(product.id);
+    onOpenDetails(product);
   };
 
   const discountPercent = product.originalPrice
@@ -30,12 +45,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
 
   return (
     <div
-      onClick={() => onOpenDetails(product)}
+      onClick={handleCardClick}
       id={`product-${product.id}`}
       className="group relative bg-white dark:bg-slate-900/70 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-cyan-500/50 rounded-2xl sm:rounded-3xl p-3 sm:p-4 transition-all duration-300 flex flex-col justify-between shadow-md dark:shadow-lg hover:shadow-cyan-950/20 cursor-pointer overflow-hidden"
     >
       {/* Top badges */}
-      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+      <div className="absolute top-4 left-4 right-14 z-10 flex items-center gap-1.5 pointer-events-none">
         {discountPercent > 0 ? (
           <span className="px-2 py-0.5 rounded-lg bg-red-500/90 text-white font-black text-[10px] tracking-wide shadow-md">
             -{discountPercent}% OFF
@@ -47,16 +62,40 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
         )}
 
         {product.inStock ? (
-          <span className="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1 backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>In Stock</span>
-          </span>
+          product.stockCount <= 5 ? (
+            <span className="px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 backdrop-blur-md animate-pulse">
+              <span>⚡ Only {product.stockCount} left!</span>
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1 backdrop-blur-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>In Stock</span>
+            </span>
+          )
         ) : (
           <span className="px-2 py-0.5 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[10px] font-medium backdrop-blur-md">
             Out of Stock
           </span>
         )}
       </div>
+
+      {/* Wishlist Heart Button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          const nowFav = toggleWishlist(product.id);
+          setIsFavorited(nowFav);
+        }}
+        className={`absolute top-3.5 right-3.5 z-20 p-2 rounded-xl backdrop-blur-md transition-all duration-200 ${
+          isFavorited
+            ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-105'
+            : 'bg-white/80 dark:bg-slate-900/80 text-slate-400 hover:text-rose-500 border border-slate-200/80 dark:border-slate-800'
+        }`}
+        title={isFavorited ? 'Remove from Wishlist' : 'Add to Wishlist'}
+      >
+        <HeartIcon className="w-3.5 h-3.5" filled={isFavorited} />
+      </button>
 
       {/* Image Container */}
       <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 mb-3 sm:mb-4 flex items-center justify-center">

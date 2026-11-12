@@ -17,6 +17,7 @@ import {
   ZapIcon,
   FilterIcon,
   CheckIcon,
+  HeartIcon,
 } from '@/components/icons';
 import { Navbar } from '@/components/Navbar';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
@@ -30,7 +31,15 @@ import { AIChatModal } from '@/components/AIChatModal';
 import { AuthModal } from '@/components/AuthModal';
 import { CustomerProfileDrawer } from '@/components/CustomerProfileDrawer';
 import { Product, Order, CustomerProfile } from '@/types';
-import { getStoredProducts, getLoggedInCustomer, getSavedTheme, applyTheme, syncProductsWithFirestore } from '@/lib/storage';
+import {
+  getStoredProducts,
+  getLoggedInCustomer,
+  getSavedTheme,
+  applyTheme,
+  syncProductsWithFirestore,
+  getWishlist,
+  getRecentlyViewed,
+} from '@/lib/storage';
 import { CATEGORIES, SHOP_CONFIG } from '@/lib/constants';
 import { createWhatsAppUrl } from '@/lib/whatsapp';
 
@@ -41,6 +50,9 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState<'featured' | 'price_low' | 'price_high' | 'rating'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [isSyncing, setIsSyncing] = useState(true);
+  const [isWishlistActive, setIsWishlistActive] = useState(false);
+  const [wishlistIds, setWishlistIds] = useState<string[]>([]);
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>([]);
 
   // Modals state
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -54,6 +66,8 @@ export default function HomePage() {
   const loadProducts = () => {
     setProducts(getStoredProducts());
     setCustomer(getLoggedInCustomer());
+    setWishlistIds(getWishlist());
+    setRecentlyViewedIds(getRecentlyViewed());
   };
 
   useEffect(() => {
@@ -76,17 +90,28 @@ export default function HomePage() {
     });
 
     const handleCustUpdate = () => setCustomer(getLoggedInCustomer());
+    const handleWishlistUpdate = () => setWishlistIds(getWishlist());
+    const handleRecentUpdate = () => setRecentlyViewedIds(getRecentlyViewed());
+
     window.addEventListener('zenexis_products_updated', loadProducts);
     window.addEventListener('zenexis_customer_updated', handleCustUpdate);
+    window.addEventListener('zenexis_wishlist_updated', handleWishlistUpdate);
+    window.addEventListener('zenexis_recently_viewed_updated', handleRecentUpdate);
+
     return () => {
       window.removeEventListener('zenexis_products_updated', loadProducts);
       window.removeEventListener('zenexis_customer_updated', handleCustUpdate);
+      window.removeEventListener('zenexis_wishlist_updated', handleWishlistUpdate);
+      window.removeEventListener('zenexis_recently_viewed_updated', handleRecentUpdate);
     };
   }, []);
 
   // Filter products
   const filteredProducts = products
     .filter((p) => {
+      if (isWishlistActive && !wishlistIds.includes(p.id)) {
+        return false;
+      }
       const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
       const matchesSearch =
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -102,6 +127,10 @@ export default function HomePage() {
       if (sortBy === 'rating') return b.rating - a.rating;
       return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
     });
+
+  const recentlyViewedProducts = recentlyViewedIds
+    .map((id) => products.find((p) => p.id === id))
+    .filter((p): p is Product => Boolean(p));
 
   const getCategoryIcon = (id: string) => {
     switch (id) {
@@ -131,6 +160,8 @@ export default function HomePage() {
         onOpenNotifications={() => setIsNotifsOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenWishlist={() => setIsWishlistActive(!isWishlistActive)}
+        wishlistActive={isWishlistActive}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         activeCategory={activeCategory}
@@ -372,6 +403,31 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Wishlist Active Filter Banner */}
+          {isWishlistActive && (
+            <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center">
+                  <HeartIcon className="w-5 h-5" filled />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Your Saved Wishlist ({wishlistIds.length} {wishlistIds.length === 1 ? 'item' : 'items'})
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Products you bookmarked for later. Click the heart on any card to remove.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsWishlistActive(false)}
+                className="px-4 py-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 transition whitespace-nowrap"
+              >
+                ✕ View All Products
+              </button>
+            </div>
+          )}
+
           {/* Categories Horizontal Selector */}
           <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 no-scrollbar">
             {CATEGORIES.map((cat) => (
@@ -467,6 +523,46 @@ export default function HomePage() {
                   onOpenDetails={(p) => setSelectedProduct(p)}
                 />
               ))}
+            </div>
+          )}
+
+          {/* Recently Viewed Products (Daraz & Amazon Style Browsing History) */}
+          {recentlyViewedProducts.length > 0 && (
+            <div className="mt-14 pt-10 border-t border-slate-200 dark:border-slate-800/80">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
+                    <ClockIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">
+                      Recently Viewed / ඔබ මෑතකදී බැලූ භාණ්ඩ
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Items you checked earlier during this session
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('zenexis_recently_viewed_v1');
+                    window.dispatchEvent(new Event('zenexis_recently_viewed_updated'));
+                  }}
+                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium transition"
+                >
+                  Clear History
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {recentlyViewedProducts.map((p) => (
+                  <ProductCard
+                    key={`recent-${p.id}`}
+                    product={p}
+                    onOpenDetails={(selected) => setSelectedProduct(selected)}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </section>

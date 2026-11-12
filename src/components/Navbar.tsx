@@ -11,6 +11,7 @@ import {
   SunIcon,
   MoonIcon,
   UserIcon,
+  HeartIcon,
 } from './icons';
 import { SHOP_CONFIG } from '@/lib/constants';
 import {
@@ -19,6 +20,7 @@ import {
   getLoggedInCustomer,
   getSavedTheme,
   saveTheme,
+  getWishlist,
 } from '@/lib/storage';
 import { createWhatsAppUrl } from '@/lib/whatsapp';
 import { CustomerProfile } from '@/types';
@@ -28,6 +30,8 @@ interface NavbarProps {
   onOpenNotifications: () => void;
   onOpenAuth?: () => void;
   onOpenProfile?: () => void;
+  onOpenWishlist?: () => void;
+  wishlistActive?: boolean;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   activeCategory?: string;
@@ -39,11 +43,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNotifications,
   onOpenAuth,
   onOpenProfile,
+  onOpenWishlist,
+  wishlistActive,
   searchQuery,
   setSearchQuery,
 }) => {
   const [cartCount, setCartCount] = useState(0);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const [customer, setCustomer] = useState<CustomerProfile | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -54,6 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     const notifs = getStoredNotifications();
     setUnreadNotifs(notifs.filter((n) => !n.read).length);
 
+    setWishlistCount(getWishlist().length);
     setCustomer(getLoggedInCustomer());
     setTheme(getSavedTheme());
   };
@@ -64,11 +72,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.addEventListener('zenexis_notifs_updated', updateState);
     window.addEventListener('zenexis_customer_updated', updateState);
     window.addEventListener('zenexis_theme_updated', updateState);
+    window.addEventListener('zenexis_wishlist_updated', updateState);
     return () => {
       window.removeEventListener('zenexis_cart_updated', updateState);
       window.removeEventListener('zenexis_notifs_updated', updateState);
       window.removeEventListener('zenexis_customer_updated', updateState);
       window.removeEventListener('zenexis_theme_updated', updateState);
+      window.removeEventListener('zenexis_wishlist_updated', updateState);
     };
   }, []);
 
@@ -183,6 +193,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <SunIcon className="w-4 h-4 text-amber-400" />
               ) : (
                 <MoonIcon className="w-4 h-4 text-indigo-500" />
+              )}
+            </button>
+
+            {/* Wishlist Heart Button */}
+            <button
+              onClick={onOpenWishlist}
+              className={`relative p-2.5 rounded-xl border transition ${
+                wishlistActive
+                  ? 'bg-rose-500/15 text-rose-500 border-rose-500/30'
+                  : 'bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500'
+              }`}
+              aria-label="Wishlist"
+              title="Saved Wishlist"
+            >
+              <HeartIcon className="w-4 h-4" filled={wishlistCount > 0} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white font-black text-[9px] flex items-center justify-center shadow">
+                  {wishlistCount}
+                </span>
               )}
             </button>
 

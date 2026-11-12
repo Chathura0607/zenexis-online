@@ -1,4 +1,4 @@
-import { Product, Order, SchoolListRequest, AppNotification, CartItem, CustomerProfile } from '@/types';
+import { Product, Order, SchoolListRequest, AppNotification, CartItem, CustomerProfile, ProductReview } from '@/types';
 import { INITIAL_PRODUCTS, INITIAL_NOTIFICATIONS, SHOP_CONFIG } from './constants';
 import {
   saveProductToFirestore,
@@ -17,6 +17,9 @@ const KEYS = {
   CART: 'zenexis_cart_v1',
   CUSTOMER: 'zenexis_customer_v1',
   THEME: 'zenexis_theme_v1',
+  REVIEWS: 'zenexis_reviews_v1',
+  WISHLIST: 'zenexis_wishlist_v1',
+  RECENTLY_VIEWED: 'zenexis_recently_viewed_v1',
 };
 
 // Safe client-side check
@@ -422,4 +425,97 @@ export const applyTheme = (theme: 'dark' | 'light') => {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }
+};
+
+// --- WISHLIST (FAVORITES) ---
+export const getWishlist = (): string[] => {
+  if (!isClient) return [];
+  try {
+    const data = localStorage.getItem(KEYS.WISHLIST);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const toggleWishlist = (productId: string): boolean => {
+  if (!isClient) return false;
+  const current = getWishlist();
+  const exists = current.includes(productId);
+  const updated = exists ? current.filter((id) => id !== productId) : [...current, productId];
+  localStorage.setItem(KEYS.WISHLIST, JSON.stringify(updated));
+  window.dispatchEvent(new Event('zenexis_wishlist_updated'));
+  return !exists;
+};
+
+export const isInWishlist = (productId: string): boolean => {
+  return getWishlist().includes(productId);
+};
+
+// --- RECENTLY VIEWED PRODUCTS ---
+export const getRecentlyViewed = (): string[] => {
+  if (!isClient) return [];
+  try {
+    const data = localStorage.getItem(KEYS.RECENTLY_VIEWED);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const addRecentlyViewed = (productId: string) => {
+  if (!isClient) return;
+  const current = getRecentlyViewed().filter((id) => id !== productId);
+  const updated = [productId, ...current].slice(0, 10);
+  localStorage.setItem(KEYS.RECENTLY_VIEWED, JSON.stringify(updated));
+  window.dispatchEvent(new Event('zenexis_recently_viewed_updated'));
+};
+
+// --- PRODUCT REVIEWS & RATINGS ---
+export const getProductReviews = (productId: string): ProductReview[] => {
+  if (!isClient) return [];
+  try {
+    const data = localStorage.getItem(KEYS.REVIEWS);
+    const allReviews: ProductReview[] = data ? JSON.parse(data) : [];
+    const productReviews = allReviews.filter((r) => r.productId === productId);
+    return productReviews;
+  } catch {
+    return [];
+  }
+};
+
+export const addProductReview = (
+  reviewData: Omit<ProductReview, 'id' | 'createdAt'>
+): ProductReview => {
+  const newReview: ProductReview = {
+    ...reviewData,
+    id: `rev-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!isClient) return newReview;
+  try {
+    const data = localStorage.getItem(KEYS.REVIEWS);
+    const allReviews: ProductReview[] = data ? JSON.parse(data) : [];
+    const updated = [newReview, ...allReviews];
+    localStorage.setItem(KEYS.REVIEWS, JSON.stringify(updated));
+    window.dispatchEvent(new Event('zenexis_reviews_updated'));
+
+    // Automatically recalculate product average rating & review count
+    const productReviews = updated.filter((r) => r.productId === reviewData.productId);
+    const avgRating = Number(
+      (productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length).toFixed(1)
+    );
+    const products = getStoredProducts();
+    const prodIndex = products.findIndex((p) => p.id === reviewData.productId);
+    if (prodIndex > -1) {
+      products[prodIndex].rating = avgRating;
+      products[prodIndex].reviewsCount = productReviews.length;
+      saveStoredProducts(products);
+    }
+  } catch (e) {
+    console.warn('Failed to save review:', e);
+  }
+
+  return newReview;
 };
