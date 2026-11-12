@@ -84,9 +84,9 @@ export default function AdminPage() {
 
   // Firestore & POS Sync State
   const [fbApiKey, setFbApiKey] = useState('AIzaSyBtzbf0yLgGFG1NGpJlMKjVra3PUByh-bw');
-  const [fbProjectId, setFbProjectId] = useState('');
-  const [fbAuthDomain, setFbAuthDomain] = useState('');
-  const [fbStorageBucket, setFbStorageBucket] = useState('');
+  const [fbProjectId, setFbProjectId] = useState('zenexis-pos');
+  const [fbAuthDomain, setFbAuthDomain] = useState('zenexis-pos.firebaseapp.com');
+  const [fbStorageBucket, setFbStorageBucket] = useState('zenexis-pos.appspot.com');
   const [fbAppId, setFbAppId] = useState('1:37370946244:web:8fbd63a812d49a77849f91');
   const [fbCollectionName, setFbCollectionName] = useState('products');
   const [fbSavedMsg, setFbSavedMsg] = useState(false);
