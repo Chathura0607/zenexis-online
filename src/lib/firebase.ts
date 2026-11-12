@@ -27,19 +27,29 @@ export interface FirebaseConfig {
 
 const STORAGE_KEY = 'zenexis_firebase_config';
 
-export const getFirebaseConfig = (): FirebaseConfig | null => {
-  if (typeof window === 'undefined') return null;
+export const DEFAULT_FIREBASE_CONFIG: FirebaseConfig = {
+  apiKey: 'AIzaSyBtzbf0yLgGFG1NGpJlMKjVra3PUByh-bw',
+  authDomain: 'zenexis-pos.firebaseapp.com',
+  projectId: 'zenexis-pos',
+  storageBucket: 'zenexis-pos.appspot.com',
+  messagingSenderId: '37370946244',
+  appId: '1:37370946244:web:8fbd63a812d49a77849f91',
+  collectionName: 'products',
+};
 
+export const getFirebaseConfig = (): FirebaseConfig => {
   // 1. Check local storage (configured via Admin Settings)
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      if (parsed.apiKey && parsed.projectId) {
-        return parsed;
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.apiKey && parsed.projectId && parsed.projectId !== 'projectId') {
+          return parsed;
+        }
+      } catch {
+        // fallback
       }
-    } catch {
-      // fallback to env
     }
   }
 
@@ -50,13 +60,14 @@ export const getFirebaseConfig = (): FirebaseConfig | null => {
       authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`,
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.appspot.com`,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '37370946244',
       appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
       collectionName: 'products',
     };
   }
 
-  return null;
+  // 3. Fallback to production default credentials
+  return DEFAULT_FIREBASE_CONFIG;
 };
 
 export const saveFirebaseConfig = (config: FirebaseConfig) => {

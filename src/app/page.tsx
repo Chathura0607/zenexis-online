@@ -341,7 +341,9 @@ export default function HomePage() {
                 Explore Available Products
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-                Showing {filteredProducts.length} verified products ready for pickup or island-wide delivery.
+                {products.length > 0
+                  ? `Showing ${filteredProducts.length} verified products ready for pickup or island-wide delivery.`
+                  : 'Genuine computer accessories, school stationery & mobile gear in Ambalangoda.'}
               </p>
             </div>
 
@@ -389,44 +391,54 @@ export default function HomePage() {
           </div>
 
           {/* Product Grid */}
-          {products.length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-4 max-w-lg mx-auto p-6">
-              {isSyncing ? (
-                <>
-                  <div className="w-12 h-12 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin mx-auto" />
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Connecting to Zenexis Cloud POS DB...</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
-                    Syncing live products and real-time inventory from your Firestore database.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20">
-                    <ShoppingBagIcon className="w-7 h-7" />
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Zenexis Catalog Ready for Live Products</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Hardcoded sample products have been removed. Any product added via your Zenexis POS or the Admin panel will instantly sync here in real-time.
-                  </p>
-                  <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
-                    <Link
-                      href="/admin"
-                      className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 text-xs font-bold rounded-xl shadow-md shadow-cyan-500/20 hover:opacity-95 transition"
-                    >
-                      Open Admin / POS Sync
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setIsSyncing(true);
-                        syncProductsWithFirestore().finally(() => setIsSyncing(false));
-                      }}
-                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-                    >
-                      Sync Firestore Now
-                    </button>
-                  </div>
-                </>
-              )}
+          {isSyncing ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-3 sm:p-4 space-y-3 animate-pulse"
+                >
+                  <div className="w-full aspect-square bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                  <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-3/4" />
+                  <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded-md w-1/2" />
+                  <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl w-full mt-2" />
+                </div>
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-4 max-w-lg mx-auto">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20">
+                <ShoppingBagIcon className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                  New Stock Arriving Soon!
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  අලුත් තොග ළඟදීම පැමිණේ...
+                </p>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
+                We are currently updating our Ambalangoda showroom catalog with the latest computer items, cables, and stationery. Looking for a specific item today? Message us directly on WhatsApp!
+              </p>
+              <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+                <a
+                  href={createWhatsAppUrl(SHOP_CONFIG.whatsappNumber, 'Hi Zenexis, I want to inquire about available products and stock at your Ambalangoda showroom.')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-2xl shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2"
+                >
+                  <WhatsAppIcon className="w-4 h-4 fill-slate-950" />
+                  <span>Inquire via WhatsApp</span>
+                </a>
+                <Link
+                  href="/school-season"
+                  className="px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs rounded-2xl border border-slate-200 dark:border-slate-700 transition flex items-center justify-center gap-2"
+                >
+                  <span>🎒</span>
+                  <span>School Booklist Hub</span>
+                </Link>
+              </div>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-3">
