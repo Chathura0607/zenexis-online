@@ -16,7 +16,7 @@ import {
 } from './icons';
 import { addToCart } from '@/lib/storage';
 import { generateDirectWhatsAppQueryUrl } from '@/lib/whatsapp';
-import { SHOP_CONFIG } from '@/lib/constants';
+import { SHOP_CONFIG, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -67,9 +67,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={product.image}
+                src={getProductDisplayImage(product)}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = getCategoryFallbackImage(product.category);
+                }}
               />
               {discountPercent > 0 && (
                 <span className="absolute top-3 left-3 px-2.5 py-1 rounded-xl bg-red-500 text-white font-black text-xs shadow-md">

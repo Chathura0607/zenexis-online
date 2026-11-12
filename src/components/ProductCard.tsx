@@ -5,6 +5,7 @@ import { Product } from '@/types';
 import { ShoppingCartIcon, WhatsAppIcon, StarIcon, CheckIcon, EyeIcon } from './icons';
 import { addToCart } from '@/lib/storage';
 import { generateDirectWhatsAppQueryUrl } from '@/lib/whatsapp';
+import { getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 
 interface ProductCardProps {
   product: Product;
@@ -61,10 +62,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
       <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 mb-3 sm:mb-4 flex items-center justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={product.image}
+          src={getProductDisplayImage(product)}
           alt={product.name}
           className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-500"
           loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = getCategoryFallbackImage(product.category);
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3">
           <span className="text-[11px] text-cyan-300 font-medium flex items-center gap-1 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-700">

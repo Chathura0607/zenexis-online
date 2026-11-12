@@ -30,7 +30,7 @@ import { AIChatModal } from '@/components/AIChatModal';
 import { AuthModal } from '@/components/AuthModal';
 import { CustomerProfileDrawer } from '@/components/CustomerProfileDrawer';
 import { Product, Order, CustomerProfile } from '@/types';
-import { getStoredProducts, getLoggedInCustomer, getSavedTheme, applyTheme } from '@/lib/storage';
+import { getStoredProducts, getLoggedInCustomer, getSavedTheme, applyTheme, syncProductsWithFirestore } from '@/lib/storage';
 import { CATEGORIES, SHOP_CONFIG } from '@/lib/constants';
 import { createWhatsAppUrl } from '@/lib/whatsapp';
 
@@ -40,6 +40,7 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [sortBy, setSortBy] = useState<'featured' | 'price_low' | 'price_high' | 'rating'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(true);
 
   // Modals state
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -68,6 +69,11 @@ export default function HomePage() {
     // Apply saved theme preference on load
     applyTheme(getSavedTheme());
     loadProducts();
+
+    // Trigger Firestore background sync for live POS products
+    syncProductsWithFirestore().finally(() => {
+      setIsSyncing(false);
+    });
 
     const handleCustUpdate = () => setCustomer(getLoggedInCustomer());
     window.addEventListener('zenexis_products_updated', loadProducts);
@@ -383,7 +389,46 @@ export default function HomePage() {
           </div>
 
           {/* Product Grid */}
-          {filteredProducts.length === 0 ? (
+          {products.length === 0 ? (
+            <div className="text-center py-20 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-4 max-w-lg mx-auto p-6">
+              {isSyncing ? (
+                <>
+                  <div className="w-12 h-12 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin mx-auto" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Connecting to Zenexis Cloud POS DB...</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    Syncing live products and real-time inventory from your Firestore database.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20">
+                    <ShoppingBagIcon className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Zenexis Catalog Ready for Live Products</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Hardcoded sample products have been removed. Any product added via your Zenexis POS or the Admin panel will instantly sync here in real-time.
+                  </p>
+                  <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
+                    <Link
+                      href="/admin"
+                      className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 text-xs font-bold rounded-xl shadow-md shadow-cyan-500/20 hover:opacity-95 transition"
+                    >
+                      Open Admin / POS Sync
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setIsSyncing(true);
+                        syncProductsWithFirestore().finally(() => setIsSyncing(false));
+                      }}
+                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                    >
+                      Sync Firestore Now
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-3">
               <ShoppingBagIcon className="w-12 h-12 mx-auto text-slate-400 dark:text-slate-600 opacity-60" />
               <h3 className="text-base font-bold text-slate-900 dark:text-white">No products matched your search.</h3>

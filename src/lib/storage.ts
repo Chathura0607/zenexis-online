@@ -1,8 +1,16 @@
 import { Product, Order, SchoolListRequest, AppNotification, CartItem, CustomerProfile } from '@/types';
 import { INITIAL_PRODUCTS, INITIAL_NOTIFICATIONS, SHOP_CONFIG } from './constants';
+import {
+  saveProductToFirestore,
+  deleteProductFromFirestore,
+  saveOrderToFirestore,
+  saveSchoolRequestToFirestore,
+  fetchProductsFromFirestore,
+  isFirebaseConnected,
+} from './firebase';
 
 const KEYS = {
-  PRODUCTS: 'zenexis_products_v1',
+  PRODUCTS: 'zenexis_products_v2',
   ORDERS: 'zenexis_orders_v1',
   SCHOOL_REQUESTS: 'zenexis_school_requests_v1',
   NOTIFICATIONS: 'zenexis_notifications_v1',
@@ -13,6 +21,17 @@ const KEYS = {
 
 // Safe client-side check
 const isClient = typeof window !== 'undefined';
+
+// Wipe legacy hardcoded mock storage if present
+if (isClient) {
+  try {
+    if (localStorage.getItem('zenexis_products_v1')) {
+      localStorage.removeItem('zenexis_products_v1');
+    }
+  } catch {
+    // ignore
+  }
+}
 
 // --- PRODUCTS ---
 export const getStoredProducts = (): Product[] => {
@@ -35,10 +54,36 @@ export const saveStoredProducts = (products: Product[]) => {
   window.dispatchEvent(new Event('zenexis_products_updated'));
 };
 
+/**
+ * Sync products directly with Google Cloud Firestore / Zenexis POS
+ */
+export const syncProductsWithFirestore = async (): Promise<Product[]> => {
+  if (!isFirebaseConnected()) {
+    return getStoredProducts();
+  }
+  try {
+    const res = await fetchProductsFromFirestore();
+    if (res.success && res.products) {
+      saveStoredProducts(res.products);
+      return res.products;
+    }
+  } catch (err) {
+    console.warn('Failed to background sync Firestore products:', err);
+  }
+  return getStoredProducts();
+};
+
 export const addProduct = (product: Product) => {
   const current = getStoredProducts();
   const updated = [product, ...current];
   saveStoredProducts(updated);
+
+  // Sync to Firestore in background
+  if (isFirebaseConnected()) {
+    saveProductToFirestore(product).catch((err) =>
+      console.warn('Firestore add product sync warning:', err)
+    );
+  }
 
   // Auto-broadcast a notification to customers that a new item arrived!
   addNotification({
@@ -56,12 +101,26 @@ export const updateProduct = (updatedProduct: Product) => {
   const current = getStoredProducts();
   const updated = current.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
   saveStoredProducts(updated);
+
+  // Sync to Firestore in background
+  if (isFirebaseConnected()) {
+    saveProductToFirestore(updatedProduct).catch((err) =>
+      console.warn('Firestore update product sync warning:', err)
+    );
+  }
 };
 
 export const deleteProduct = (id: string) => {
   const current = getStoredProducts();
   const updated = current.filter((p) => p.id !== id);
   saveStoredProducts(updated);
+
+  // Sync delete to Firestore
+  if (isFirebaseConnected()) {
+    deleteProductFromFirestore(id).catch((err) =>
+      console.warn('Firestore delete product sync warning:', err)
+    );
+  }
 };
 
 // --- CART ---
@@ -99,14 +158,14 @@ export const removeFromCart = (productId: string) => {
 };
 
 export const updateCartQuantity = (productId: string, quantity: number) => {
+  const cart = getStoredCart();
   if (quantity <= 0) {
     removeFromCart(productId);
     return;
   }
-  const cart = getStoredCart();
-  const item = cart.find((i) => i.product.id === productId);
-  if (item) {
-    item.quantity = quantity;
+  const idx = cart.findIndex((item) => item.product.id === productId);
+  if (idx > -1) {
+    cart[idx].quantity = quantity;
     saveStoredCart(cart);
   }
 };
@@ -147,6 +206,13 @@ export const createOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'creat
 
   saveStoredOrders([newOrder, ...currentOrders]);
 
+  // Sync order to Cloud Firestore in isolated 'online_orders' collection
+  if (isFirebaseConnected()) {
+    saveOrderToFirestore(newOrder).catch((err) =>
+      console.warn('Firestore order sync warning:', err)
+    );
+  }
+
   // Create notification
   addNotification({
     id: `notif-${Date.now()}`,
@@ -169,12 +235,19 @@ export const updateOrderStatus = (
   const current = getStoredOrders();
   const updated = current.map((ord) => {
     if (ord.id === orderId || ord.orderNumber === orderId) {
-      return {
+      const updatedOrd = {
         ...ord,
         status,
         ...(extra || {}),
         updatedAt: new Date().toISOString(),
       };
+      // Sync update to Firestore
+      if (isFirebaseConnected()) {
+        saveOrderToFirestore(updatedOrd).catch((err) =>
+          console.warn('Firestore order status sync warning:', err)
+        );
+      }
+      return updatedOrd;
     }
     return ord;
   });
@@ -215,6 +288,13 @@ export const createSchoolRequest = (
 
   saveStoredSchoolRequests([newRequest, ...current]);
 
+  // Sync to Firestore 'school_requests' collection
+  if (isFirebaseConnected()) {
+    saveSchoolRequestToFirestore(newRequest).catch((err) =>
+      console.warn('Firestore school request sync warning:', err)
+    );
+  }
+
   addNotification({
     id: `notif-${Date.now()}`,
     title: `🎒 Booklist Request #${requestNumber} Received`,
@@ -230,7 +310,18 @@ export const createSchoolRequest = (
 
 export const updateSchoolRequest = (updatedReq: SchoolListRequest) => {
   const current = getStoredSchoolRequests();
-  const updated = current.map((r) => (r.id === updatedReq.id ? { ...updatedReq, updatedAt: new Date().toISOString() } : r));
+  const updated = current.map((r) => {
+    if (r.id === updatedReq.id) {
+      const u = { ...updatedReq, updatedAt: new Date().toISOString() };
+      if (isFirebaseConnected()) {
+        saveSchoolRequestToFirestore(u).catch((err) =>
+          console.warn('Firestore school update sync warning:', err)
+        );
+      }
+      return u;
+    }
+    return r;
+  });
   saveStoredSchoolRequests(updated);
 };
 
@@ -304,7 +395,6 @@ export const getSavedTheme = (): 'dark' | 'light' => {
   try {
     const saved = localStorage.getItem(KEYS.THEME);
     if (saved === 'light' || saved === 'dark') return saved;
-    // Default to dark mode for sleek gaming/tech store look
     return 'dark';
   } catch {
     return 'dark';
@@ -333,4 +423,3 @@ export const applyTheme = (theme: 'dark' | 'light') => {
     root.style.colorScheme = 'light';
   }
 };
-

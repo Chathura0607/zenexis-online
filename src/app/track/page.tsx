@@ -17,7 +17,7 @@ import {
 } from '@/components/icons';
 import { Order, OrderStatus } from '@/types';
 import { getStoredOrders } from '@/lib/storage';
-import { SHOP_CONFIG } from '@/lib/constants';
+import { SHOP_CONFIG, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 import { createWhatsAppUrl } from '@/lib/whatsapp';
 
 function TrackOrderContent() {
@@ -361,9 +361,12 @@ function TrackOrderContent() {
                     <div className="flex items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={item.product.image}
+                        src={getProductDisplayImage(item.product)}
                         alt={item.product.name}
                         className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = getCategoryFallbackImage(item.product.category);
+                        }}
                       />
                       <div>
                         <h4 className="font-semibold text-slate-900 dark:text-white">{item.product.name}</h4>

@@ -22,7 +22,7 @@ import {
   createOrder,
   getLoggedInCustomer,
 } from '@/lib/storage';
-import { SHOP_CONFIG } from '@/lib/constants';
+import { SHOP_CONFIG, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -197,9 +197,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={item.product.image}
+                        src={getProductDisplayImage(item.product)}
                         alt={item.product.name}
                         className="w-14 h-14 rounded-xl object-cover bg-slate-100 dark:bg-slate-900 shrink-0 border border-slate-200/60 dark:border-slate-800/60"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = getCategoryFallbackImage(item.product.category);
+                        }}
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">

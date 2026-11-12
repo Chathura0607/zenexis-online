@@ -33,15 +33,17 @@ import {
   getStoredSchoolRequests,
   updateSchoolRequest,
   addNotification,
+  syncProductsWithFirestore,
 } from '@/lib/storage';
 import { analyzeProductWithAI } from '@/lib/gemini';
-import { SHOP_CONFIG, CATEGORIES, SCHOOL_GRADES } from '@/lib/constants';
+import { SHOP_CONFIG, CATEGORIES, SCHOOL_GRADES, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 import { createWhatsAppUrl, generateStatusUpdateWhatsAppMessage } from '@/lib/whatsapp';
 
 import {
   getFirebaseConfig,
   saveFirebaseConfig,
   isFirebaseConnected,
+  testFirestoreConnection,
   FirebaseConfig,
 } from '@/lib/firebase';
 
@@ -81,12 +83,15 @@ export default function AdminPage() {
   const [broadcastSent, setBroadcastSent] = useState(false);
 
   // Firestore & POS Sync State
-  const [fbApiKey, setFbApiKey] = useState('');
+  const [fbApiKey, setFbApiKey] = useState('AIzaSyBtzbf0yLgGFG1NGpJlMKjVra3PUByh-bw');
   const [fbProjectId, setFbProjectId] = useState('');
   const [fbAuthDomain, setFbAuthDomain] = useState('');
   const [fbStorageBucket, setFbStorageBucket] = useState('');
-  const [fbAppId, setFbAppId] = useState('');
+  const [fbAppId, setFbAppId] = useState('1:37370946244:web:8fbd63a812d49a77849f91');
+  const [fbCollectionName, setFbCollectionName] = useState('products');
   const [fbSavedMsg, setFbSavedMsg] = useState(false);
+  const [isTestingSync, setIsTestingSync] = useState(false);
+  const [testSyncResult, setTestSyncResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
 
   const loadData = () => {
     setProducts(getStoredProducts());
@@ -101,11 +106,12 @@ export default function AdminPage() {
     }
     const currentFb = getFirebaseConfig();
     if (currentFb) {
-      setFbApiKey(currentFb.apiKey || '');
-      setFbProjectId(currentFb.projectId || '');
-      setFbAuthDomain(currentFb.authDomain || '');
-      setFbStorageBucket(currentFb.storageBucket || '');
-      setFbAppId(currentFb.appId || '');
+      if (currentFb.apiKey) setFbApiKey(currentFb.apiKey);
+      if (currentFb.projectId && currentFb.projectId !== 'projectId') setFbProjectId(currentFb.projectId);
+      if (currentFb.authDomain) setFbAuthDomain(currentFb.authDomain);
+      if (currentFb.storageBucket) setFbStorageBucket(currentFb.storageBucket);
+      if (currentFb.appId) setFbAppId(currentFb.appId);
+      if (currentFb.collectionName) setFbCollectionName(currentFb.collectionName);
     }
     loadData();
     window.addEventListener('zenexis_products_updated', loadData);
@@ -265,8 +271,8 @@ export default function AdminPage() {
     setTimeout(() => setBroadcastSent(false), 2500);
   };
 
-  const handleSaveFirebaseConfig = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveFirebaseConfig = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!fbProjectId.trim() || !fbApiKey.trim()) {
       alert('Please enter at least Project ID and API Key.');
       return;
@@ -277,12 +283,42 @@ export default function AdminPage() {
       projectId: fbProjectId.trim(),
       authDomain: fbAuthDomain.trim() || `${fbProjectId.trim()}.firebaseapp.com`,
       storageBucket: fbStorageBucket.trim() || `${fbProjectId.trim()}.appspot.com`,
-      messagingSenderId: '',
+      messagingSenderId: '37370946244',
       appId: fbAppId.trim(),
+      collectionName: fbCollectionName.trim() || 'products',
     });
 
     setFbSavedMsg(true);
     setTimeout(() => setFbSavedMsg(false), 3000);
+  };
+
+  const handleTestSync = async () => {
+    if (!fbProjectId.trim() || !fbApiKey.trim()) {
+      alert('Please enter your Firebase Project ID and API Key before testing.');
+      return;
+    }
+
+    // Auto-save configuration first
+    handleSaveFirebaseConfig();
+
+    setIsTestingSync(true);
+    setTestSyncResult(null);
+
+    try {
+      const res = await testFirestoreConnection();
+      if (res.success) {
+        await syncProductsWithFirestore();
+        loadData();
+      }
+      setTestSyncResult(res);
+    } catch (err: any) {
+      setTestSyncResult({
+        success: false,
+        message: err?.message || 'Sync failed. Please check network and permissions.',
+      });
+    } finally {
+      setIsTestingSync(false);
+    }
   };
 
   // Metrics
@@ -828,9 +864,12 @@ export default function AdminPage() {
                   <div className="flex gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={p.image}
+                      src={getProductDisplayImage(p)}
                       alt={p.name}
                       className="w-16 h-16 rounded-xl object-cover bg-slate-950 shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getCategoryFallbackImage(p.category);
+                      }}
                     />
                     <div className="min-w-0">
                       <span className="text-[10px] uppercase font-bold text-cyan-400">
@@ -1191,20 +1230,26 @@ export default function AdminPage() {
             <div className="p-6 bg-slate-900 border border-slate-800 rounded-3xl space-y-4">
               <h4 className="text-sm font-bold text-white">Enter Your Firebase Project Credentials:</h4>
               <p className="text-xs text-slate-400">
-                You can copy these 3-4 lines directly from your Firebase Console (Project Settings ➔ General ➔ Your apps):
+                You can copy these lines directly from your Firebase Console (Project Settings ➔ General ➔ Your apps):
               </p>
 
               <form onSubmit={handleSaveFirebaseConfig} className="space-y-4 pt-2">
                 <div>
-                  <label className="text-[11px] text-slate-400 block mb-1">Firebase Project ID *</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[11px] text-slate-400 font-semibold">Firebase Project ID *</label>
+                    <span className="text-[10px] text-amber-400">Firebase Console ➔ Project Settings</span>
+                  </div>
                   <input
                     type="text"
                     required
                     value={fbProjectId}
                     onChange={(e) => setFbProjectId(e.target.value)}
-                    placeholder="e.g. zenexis-pos-12345"
+                    placeholder="e.g. zenexis-pos (Find in Firebase Project Settings)"
                     className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
                   />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    💡 Tip: Firebase project IDs are lowercase (e.g. <code className="text-cyan-400">zenexis-pos-1234</code>). If yours differs from the word &apos;projectId&apos;, paste your exact ID here.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1221,6 +1266,30 @@ export default function AdminPage() {
                   </div>
 
                   <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">POS Products Collection Name</label>
+                    <input
+                      type="text"
+                      value={fbCollectionName}
+                      onChange={(e) => setFbCollectionName(e.target.value)}
+                      placeholder="products (or items, inventory)"
+                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">App ID</label>
+                    <input
+                      type="text"
+                      value={fbAppId}
+                      onChange={(e) => setFbAppId(e.target.value)}
+                      placeholder="1:37370946244:web:8fbd63a812d49a77849f91"
+                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
                     <label className="text-[11px] text-slate-400 block mb-1">Auth Domain (optional)</label>
                     <input
                       type="text"
@@ -1232,46 +1301,64 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Storage Bucket (optional)</label>
-                    <input
-                      type="text"
-                      value={fbStorageBucket}
-                      onChange={(e) => setFbStorageBucket(e.target.value)}
-                      placeholder="zenexis-pos.appspot.com"
-                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
-                    />
+                {/* Test Feedback banner */}
+                {testSyncResult && (
+                  <div
+                    className={`p-4 rounded-2xl border text-xs space-y-1 ${
+                      testSyncResult.success
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                        : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                    }`}
+                  >
+                    <p className="font-bold flex items-center gap-1.5">
+                      <span>{testSyncResult.success ? '✅' : '⚠️'}</span>
+                      <span>{testSyncResult.message}</span>
+                    </p>
+                    {testSyncResult.count !== undefined && (
+                      <p className="text-[11px] text-slate-400">
+                        Total items loaded: {testSyncResult.count}. In-store items without photos will automatically use category fallback graphics.
+                      </p>
+                    )}
                   </div>
+                )}
 
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">App ID (optional)</label>
-                    <input
-                      type="text"
-                      value={fbAppId}
-                      onChange={(e) => setFbAppId(e.target.value)}
-                      placeholder="1:123456789:web:abcdef"
-                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="py-3.5 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-2xl border border-slate-700 transition flex items-center justify-center gap-2"
+                  >
+                    {fbSavedMsg ? (
+                      <>
+                        <CheckIcon className="w-4 h-4 text-emerald-400" />
+                        <span>Config Saved!</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheckIcon className="w-4 h-4" />
+                        <span>Save Configuration</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestSync}
+                    disabled={isTestingSync}
+                    className="py-3.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs rounded-2xl shadow-xl shadow-amber-500/20 transition flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {isTestingSync ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        <span>Testing & Syncing POS...</span>
+                      </>
+                    ) : (
+                      <>
+                        <SparklesIcon className="w-4 h-4" />
+                        <span>Test & Sync POS Products Now</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl shadow-amber-500/20 transition flex items-center justify-center gap-2"
-                >
-                  {fbSavedMsg ? (
-                    <>
-                      <CheckIcon className="w-5 h-5" />
-                      <span>Firebase POS Config Saved & Linked!</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheckIcon className="w-5 h-5" />
-                      <span>Save & Link with POS Firestore DB</span>
-                    </>
-                  )}
-                </button>
               </form>
             </div>
           </div>
