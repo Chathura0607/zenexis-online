@@ -197,7 +197,7 @@ export default function HomePage() {
 
                 {/* Description */}
                 <p className="text-sm sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                  Genuine Computer Accessories, Keypad & Smartphones, 20W PD Chargers, and Full School Booklist Packages with <strong>Island-wide Cash on Delivery</strong> and <strong>Instant WhatsApp Confirmation</strong>.
+                  Your one-stop shop for Genuine Computer Accessories, Keypad & Smartphones, Complete Stationery, and Unique Gift Items. Enjoy <strong>Island-wide Cash on Delivery</strong> and <strong>Instant WhatsApp Confirmation</strong>.
                 </p>
 
                 {/* Badges Bar */}
@@ -374,7 +374,7 @@ export default function HomePage() {
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                 {products.length > 0
                   ? `Showing ${filteredProducts.length} verified products ready for pickup or island-wide delivery.`
-                  : 'Genuine computer accessories, school stationery & mobile gear in Ambalangoda.'}
+                  : 'Genuine computer accessories, complete stationery, mobiles & unique gift items in Ambalangoda.'}
               </p>
             </div>
 

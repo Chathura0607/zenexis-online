@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Zenexis Online | Computer Accessories, Stationery & Mobile Shop - Ambalangoda",
-  description: "Official online store for Zenexis in Ambalangoda. Order Computer Accessories, School Stationery, Mobile Phones & Chargers with Island-wide Delivery & Instant WhatsApp Confirmation.",
+  title: "Zenexis Online | Computer Accessories, Stationery, Mobiles & Gifts - Ambalangoda",
+  description: "Your one-stop shop for Genuine Computer Accessories, Keypad & Smartphones, Complete Stationery, and Unique Gift Items. Enjoy Island-wide Cash on Delivery and Instant WhatsApp Confirmation.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icons/icon-192.png",

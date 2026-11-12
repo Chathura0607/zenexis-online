@@ -2,7 +2,7 @@ import { Product } from '@/types';
 
 export const SHOP_CONFIG = {
   name: 'Zenexis',
-  tagline: 'Computer Accessories, School Stationery & Mobile Hub',
+  tagline: 'Computer Accessories, Complete Stationery, Mobiles & Unique Gifts',
   address: 'Ambalangoda, Sri Lanka',
   phone: '0701120945',
   whatsappNumber: '0701120945',
