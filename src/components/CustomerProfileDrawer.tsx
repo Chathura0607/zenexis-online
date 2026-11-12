@@ -245,7 +245,7 @@ export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({
           </div>
 
           {/* Footer / Logout */}
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 space-y-2">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                 <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-400" />
@@ -258,17 +258,6 @@ export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({
               >
                 Sign Out
               </button>
-            </div>
-
-            {/* Staff / Admin Direct Access */}
-            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 text-center">
-              <Link
-                href="/admin"
-                onClick={onClose}
-                className="text-[11px] text-slate-500 hover:text-cyan-500 dark:text-slate-400 dark:hover:text-cyan-400 font-medium inline-flex items-center gap-1 transition"
-              >
-                <span>⚙️ Staff Management Portal (Admin)</span>
-              </Link>
             </div>
           </div>
         </div>
