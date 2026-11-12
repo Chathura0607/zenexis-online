@@ -85,14 +85,14 @@ export const AIChatModal: React.FC = () => {
         {!isOpen && (
           <button
             onClick={() => setIsOpen(true)}
-            className="group relative flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-2xl shadow-2xl shadow-cyan-500/30 transition-all duration-300 hover:scale-105 active:scale-95"
+            className="group relative flex items-center gap-2 p-3 sm:px-4 sm:py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-full sm:rounded-2xl shadow-2xl shadow-cyan-500/30 transition-all duration-300 hover:scale-105 active:scale-95"
             aria-label="Open Zenexis AI Assistant"
           >
             <div className="relative">
               <SparklesIcon className="w-5 h-5 text-slate-950 animate-pulse" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-slate-950" />
             </div>
-            <span className="text-xs sm:text-sm font-extrabold hidden xs:inline">
+            <span className="text-xs sm:text-sm font-extrabold hidden md:inline">
               AI Support & Chat
             </span>
           </button>

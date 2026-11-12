@@ -150,7 +150,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950 pb-16 sm:pb-0 transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950 pb-24 sm:pb-0 transition-colors">
       {/* PWA Prompt */}
       <PWAInstallPrompt />
 
@@ -176,18 +176,18 @@ export default function HomePage() {
           <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-center">
               {/* Left Column */}
-              <div className="lg:col-span-7 space-y-5 text-center lg:text-left">
+              <div className="lg:col-span-7 space-y-4 sm:space-y-5 text-center lg:text-left">
                 {/* Location Pill */}
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-cyan-500/30 text-cyan-600 dark:text-cyan-400 text-xs font-semibold backdrop-blur-md shadow-sm dark:shadow-inner">
-                  <MapPinIcon className="w-4 h-4 text-cyan-500" />
+                <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-cyan-500/30 text-cyan-600 dark:text-cyan-400 text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-sm dark:shadow-inner">
+                  <MapPinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-500" />
                   <span>Zenexis Showroom • Ambalangoda</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
 
                 {/* Main Heading */}
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                <h1 className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
                   Your Smart Store for{' '}
                   <span className="bg-gradient-to-r from-cyan-500 via-teal-400 to-blue-600 bg-clip-text text-transparent">
                     Tech & School
@@ -196,42 +196,42 @@ export default function HomePage() {
                 </h1>
 
                 {/* Description */}
-                <p className="text-sm sm:text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto lg:mx-0 leading-relaxed">
+                <p className="text-xs sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto lg:mx-0 leading-relaxed">
                   Your one-stop shop for Genuine Computer Accessories, Keypad & Smartphones, Complete Stationery, and Unique Gift Items. Enjoy <strong>Island-wide Cash on Delivery</strong> and <strong>Instant WhatsApp Confirmation</strong>.
                 </p>
 
                 {/* Badges Bar */}
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2 text-xs">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none text-slate-700 dark:text-slate-300">
-                    <TruckIcon className="w-4 h-4 text-cyan-500" />
-                    <span>Island-wide Delivery</span>
+                <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap items-center justify-center lg:justify-start sm:gap-3 pt-1 sm:pt-2 text-[10px] sm:text-xs">
+                  <div className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none text-slate-700 dark:text-slate-300 text-center">
+                    <TruckIcon className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                    <span className="truncate">Island-wide COD</span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none text-slate-700 dark:text-slate-300">
-                    <ShieldCheckIcon className="w-4 h-4 text-emerald-500" />
-                    <span>Cash on Delivery (COD)</span>
+                  <div className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none text-slate-700 dark:text-slate-300 text-center">
+                    <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span className="truncate">TRCSL Genuine</span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none text-slate-700 dark:text-slate-300">
-                    <ClockIcon className="w-4 h-4 text-amber-500" />
-                    <span>30-Min Store Pickup</span>
+                  <div className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none text-slate-700 dark:text-slate-300 text-center">
+                    <ClockIcon className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="truncate">Store Pickup</span>
                   </div>
                 </div>
 
                 {/* CTA Buttons */}
-                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-4">
+                <div className="grid grid-cols-2 sm:flex sm:flex-row items-center justify-center lg:justify-start gap-2.5 sm:gap-3 pt-2 sm:pt-4">
                   <a
                     href="#catalog"
-                    className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-cyan-500/20 transition transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-4 sm:px-7 py-3 sm:py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg shadow-cyan-500/20 transition transform active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2"
                   >
-                    <ShoppingBagIcon className="w-4 h-4 text-slate-950" />
-                    <span>Browse Products</span>
+                    <ShoppingBagIcon className="w-4 h-4 text-slate-950 shrink-0" />
+                    <span>Browse Store</span>
                   </a>
 
                   <Link
                     href="/school-season"
-                    className="w-full sm:w-auto px-7 py-3.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 font-black text-sm rounded-2xl transition flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-4 sm:px-7 py-3 sm:py-3.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl transition flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95"
                   >
-                    <span>🎒 Upload School Booklist</span>
-                    <span className="text-[10px] px-1.5 py-0.2 bg-amber-400 text-slate-950 rounded font-bold">
+                    <span>🎒 School List</span>
+                    <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 bg-amber-400 text-slate-950 rounded font-bold">
                       -10%
                     </span>
                   </Link>
@@ -240,16 +240,16 @@ export default function HomePage() {
                     href={createWhatsAppUrl(SHOP_CONFIG.whatsappNumber, 'Hello Zenexis! I want to inquire about your products.')}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto px-5 py-3.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold text-xs rounded-2xl transition flex items-center justify-center gap-2"
+                    className="col-span-2 sm:col-span-1 w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold text-xs rounded-xl sm:rounded-2xl transition flex items-center justify-center gap-1.5 sm:gap-2"
                   >
-                    <WhatsAppIcon className="w-4 h-4 fill-emerald-500" />
+                    <WhatsAppIcon className="w-4 h-4 fill-emerald-500 shrink-0" />
                     <span>WhatsApp 0701120945</span>
                   </a>
                 </div>
               </div>
 
-              {/* Right Column: Hero Highlight Card */}
-              <div className="lg:col-span-5 relative">
+              {/* Right Column: Hero Highlight Card (Desktop Only) */}
+              <div className="hidden lg:block lg:col-span-5 relative">
                 <div className="relative rounded-3xl bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xl dark:shadow-2xl overflow-hidden transition-colors">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl pointer-events-none" />
 
@@ -429,12 +429,12 @@ export default function HomePage() {
           )}
 
           {/* Categories Horizontal Selector */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 no-scrollbar">
+          <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-5 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap shrink-0 shadow-sm dark:shadow-none ${
+                className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0 shadow-sm dark:shadow-none active:scale-95 ${
                   activeCategory === cat.id
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md shadow-cyan-500/25'
                     : 'bg-white dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800'
@@ -448,7 +448,7 @@ export default function HomePage() {
 
           {/* Product Grid */}
           {isSyncing ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div
                   key={i}
@@ -515,7 +515,7 @@ export default function HomePage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-2.5 sm:gap-5">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}

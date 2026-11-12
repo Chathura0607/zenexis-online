@@ -96,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/90 dark:bg-slate-950/85 border-b border-slate-200 dark:border-slate-800/80 transition-colors shadow-sm">
       {/* Top Promotional Announcement Banner */}
       <div className="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-medium text-white text-center flex items-center justify-center gap-2 overflow-hidden shadow-inner">
-        <span className="hidden sm:inline">🎒 <strong>School Season Special:</strong> 10% OFF on all Booklist packages!</span>
+        <span className="hidden sm:inline">🎒 <strong>School Season Special:</strong> 10% OFF on all Booklist packages! | </span>
         <span className="inline">🚚 <strong>Island-wide Cash on Delivery</strong> | 🏪 Ambalangoda</span>
         <span className="hidden md:inline">| 📞 WhatsApp: <strong>{SHOP_CONFIG.phone}</strong></span>
       </div>
@@ -148,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             {/* School Season Special Link */}
             <Link
               href="/school-season"
@@ -185,7 +185,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Theme Toggle Button (Dark / Light Mode) */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition"
+              className="p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition"
               title={`Switch to ${theme === 'dark' ? 'Light (Normal)' : 'Dark'} Mode`}
               aria-label="Toggle theme"
             >
@@ -199,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Wishlist Heart Button */}
             <button
               onClick={onOpenWishlist}
-              className={`relative p-2.5 rounded-xl border transition ${
+              className={`relative p-2 sm:p-2.5 rounded-xl border transition ${
                 wishlistActive
                   ? 'bg-rose-500/15 text-rose-500 border-rose-500/30'
                   : 'bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500'
@@ -218,7 +218,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Notification Bell */}
             <button
               onClick={onOpenNotifications}
-              className="relative p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition"
+              className="relative p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition"
               aria-label="Notifications"
             >
               <BellIcon className="w-4 h-4" />
@@ -233,7 +233,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {customer ? (
               <button
                 onClick={onOpenProfile}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-bold text-cyan-600 dark:text-cyan-400 transition"
+                className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-bold text-cyan-600 dark:text-cyan-400 transition"
                 title="View My Profile & Orders"
               >
                 {customer.avatar ? (
@@ -253,7 +253,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-bold transition"
+                className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-bold transition"
                 title="Sign In / Register"
               >
                 <UserIcon className="w-4 h-4 text-cyan-500" />
@@ -261,13 +261,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* Cart Button */}
+            {/* Desktop Cart Button (Mobile uses thumb-friendly MobileBottomNav) */}
             <button
               onClick={onOpenCart}
-              className="relative flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-cyan-500/20 transition group"
+              className="hidden sm:flex relative items-center gap-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-cyan-500/20 transition group"
             >
               <ShoppingCartIcon className="w-4 h-4 text-slate-950" />
-              <span className="hidden sm:inline">Cart</span>
+              <span>Cart</span>
               {cartCount > 0 && (
                 <span className="w-4 h-4 rounded-full bg-slate-950 text-cyan-400 text-[10px] flex items-center justify-center font-black">
                   {cartCount}
@@ -278,20 +278,20 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Mobile Search Bar */}
-        <div className="md:hidden pb-3">
+        <div className="md:hidden pb-2.5">
           <div className="relative w-full">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search computer items, stationery, phones..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+              className="w-full pl-9 pr-8 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-cyan-500 transition"
             />
-            <SearchIcon className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <SearchIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2.5 text-[10px] text-slate-400"
+                className="absolute right-3 top-3 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 Clear
               </button>

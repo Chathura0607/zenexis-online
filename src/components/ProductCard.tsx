@@ -47,33 +47,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
     <div
       onClick={handleCardClick}
       id={`product-${product.id}`}
-      className="group relative bg-white dark:bg-slate-900/70 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-cyan-500/50 rounded-2xl sm:rounded-3xl p-3 sm:p-4 transition-all duration-300 flex flex-col justify-between shadow-md dark:shadow-lg hover:shadow-cyan-950/20 cursor-pointer overflow-hidden"
+      className="group relative bg-white dark:bg-slate-900/70 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-cyan-500/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 transition-all duration-300 flex flex-col justify-between shadow-md dark:shadow-lg hover:shadow-cyan-950/20 cursor-pointer overflow-hidden"
     >
       {/* Top badges */}
-      <div className="absolute top-4 left-4 right-14 z-10 flex items-center gap-1.5 pointer-events-none">
+      <div className="absolute top-2 left-2 right-10 z-10 flex items-center gap-1 pointer-events-none">
         {discountPercent > 0 ? (
-          <span className="px-2 py-0.5 rounded-lg bg-red-500/90 text-white font-black text-[10px] tracking-wide shadow-md">
+          <span className="px-1.5 py-0.5 rounded-md sm:rounded-lg bg-red-500/90 text-white font-black text-[9px] sm:text-[10px] tracking-wide shadow-md">
             -{discountPercent}% OFF
           </span>
         ) : (
-          <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/90 text-cyan-700 dark:text-cyan-400 font-bold text-[10px] border border-slate-200 dark:border-slate-700">
+          <span className="px-1.5 py-0.5 rounded-md sm:rounded-lg bg-slate-100 dark:bg-slate-800/90 text-cyan-700 dark:text-cyan-400 font-bold text-[9px] sm:text-[10px] border border-slate-200 dark:border-slate-700">
             {product.category.replace('_', ' ')}
           </span>
         )}
 
         {product.inStock ? (
           product.stockCount <= 5 ? (
-            <span className="px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 backdrop-blur-md animate-pulse">
-              <span>⚡ Only {product.stockCount} left!</span>
+            <span className="px-1.5 py-0.5 rounded-md sm:rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[9px] sm:text-[10px] font-bold flex items-center gap-1 backdrop-blur-md animate-pulse">
+              <span>⚡ {product.stockCount} left</span>
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1 backdrop-blur-md">
+            <span className="px-1.5 py-0.5 rounded-md sm:rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[9px] sm:text-[10px] font-semibold flex items-center gap-1 backdrop-blur-md">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>In Stock</span>
             </span>
           )
         ) : (
-          <span className="px-2 py-0.5 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[10px] font-medium backdrop-blur-md">
+          <span className="px-1.5 py-0.5 rounded-md sm:rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[9px] sm:text-[10px] font-medium backdrop-blur-md">
             Out of Stock
           </span>
         )}
@@ -87,7 +87,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
           const nowFav = toggleWishlist(product.id);
           setIsFavorited(nowFav);
         }}
-        className={`absolute top-3.5 right-3.5 z-20 p-2 rounded-xl backdrop-blur-md transition-all duration-200 ${
+        className={`absolute top-2 right-2 z-20 p-1.5 sm:p-2 rounded-lg sm:rounded-xl backdrop-blur-md transition-all duration-200 ${
           isFavorited
             ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-105'
             : 'bg-white/80 dark:bg-slate-900/80 text-slate-400 hover:text-rose-500 border border-slate-200/80 dark:border-slate-800'
@@ -98,7 +98,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
       </button>
 
       {/* Image Container */}
-      <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 mb-3 sm:mb-4 flex items-center justify-center">
+      <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 mb-2 sm:mb-4 flex items-center justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={getProductDisplayImage(product)}
@@ -120,14 +120,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
       <div className="flex-1 flex flex-col justify-between">
         <div>
           {/* Rating */}
-          <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="flex items-center gap-1 mb-1 sm:mb-1.5">
             <div className="flex text-amber-400">
-              <StarIcon className="w-3.5 h-3.5 fill-amber-400" />
+              <StarIcon className="w-3 sm:w-3.5 h-3 sm:h-3.5 fill-amber-400" />
             </div>
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{product.rating}</span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">({product.reviewsCount})</span>
+            <span className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300">{product.rating}</span>
+            <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500">({product.reviewsCount})</span>
             {product.isSchoolSeason && (
-              <span className="ml-auto text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
+              <span className="ml-auto text-[9px] sm:text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
                 School Pack
               </span>
             )}
@@ -140,7 +140,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
 
           {/* Sinhala Sub-label */}
           {product.nameSi && (
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5 font-light">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5 font-light">
               {product.nameSi}
             </p>
           )}
@@ -152,26 +152,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
         </div>
 
         {/* Price & Action Buttons */}
-        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-col gap-2.5">
+        <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-col gap-2">
           {/* Price */}
-          <div className="flex items-baseline gap-2">
-            <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-sm sm:text-lg font-black text-slate-900 dark:text-white">
               Rs. {product.price.toLocaleString()}
             </span>
             {product.originalPrice && (
-              <span className="text-xs text-slate-400 dark:text-slate-500 line-through">
+              <span className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 line-through">
                 Rs. {product.originalPrice.toLocaleString()}
               </span>
             )}
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-1.5">
             {/* Add to Cart Button */}
             <button
               onClick={handleAddToCart}
               disabled={!product.inStock}
-              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md ${
+              className={`flex-1 py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 shadow-md ${
                 !product.inStock
                   ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
                   : added
@@ -186,8 +186,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
                 </>
               ) : (
                 <>
-                  <ShoppingCartIcon className="w-3.5 h-3.5 text-slate-950" />
-                  <span>Add to Cart</span>
+                  <ShoppingCartIcon className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+                  <span className="sm:hidden">Add</span>
+                  <span className="hidden sm:inline">Add to Cart</span>
                 </>
               )}
             </button>
@@ -198,11 +199,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="py-2 px-2.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition flex items-center justify-center gap-1.5"
+              className="p-2 sm:px-2.5 rounded-xl text-[11px] sm:text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition flex items-center justify-center gap-1 shrink-0"
               title="Ask about this item on WhatsApp"
             >
               <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-500" />
-              <span>Ask WP</span>
+              <span className="hidden sm:inline">Ask WP</span>
             </a>
           </div>
         </div>

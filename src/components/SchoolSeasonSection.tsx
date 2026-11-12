@@ -139,28 +139,30 @@ export const SchoolSeasonSection: React.FC = () => {
           </p>
 
           {/* Tab Selector */}
-          <div className="mt-6 inline-flex p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+          <div className="mt-6 grid grid-cols-2 w-full sm:w-auto sm:inline-flex p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
             <button
               onClick={() => setActiveTab('upload')}
-              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 ${
+              className={`px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 sm:gap-2 ${
                 activeTab === 'upload'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <CameraIcon className="w-4 h-4" />
-              <span>Upload Handwritten Booklist</span>
+              <CameraIcon className="w-4 h-4 shrink-0" />
+              <span className="sm:hidden">Upload List</span>
+              <span className="hidden sm:inline">Upload Handwritten Booklist</span>
             </button>
             <button
               onClick={() => setActiveTab('bundles')}
-              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 ${
+              className={`px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 sm:gap-2 ${
                 activeTab === 'bundles'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <BookOpenIcon className="w-4 h-4" />
-              <span>Standard Grade Bundles</span>
+              <BookOpenIcon className="w-4 h-4 shrink-0" />
+              <span className="sm:hidden">Grade Bundles</span>
+              <span className="hidden sm:inline">Standard Grade Bundles</span>
             </button>
           </div>
         </div>

@@ -130,7 +130,7 @@ function TrackOrderContent() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto px-4 py-10 w-full space-y-8">
+      <main className="flex-1 max-w-4xl mx-auto px-4 py-8 w-full space-y-6 pb-24 sm:pb-10">
         {/* Title & Search Bar */}
         <div className="text-center max-w-xl mx-auto space-y-3">
           <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20">
