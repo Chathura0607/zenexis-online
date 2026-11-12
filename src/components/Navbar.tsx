@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group shrink-0">
@@ -126,7 +126,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </Link>
 
           {/* Search Bar (Desktop & Tablet) */}
-          <div className="hidden md:flex flex-1 max-w-md relative">
+          <div className="hidden md:flex flex-1 max-w-xl lg:max-w-2xl relative mx-2 lg:mx-4">
             <div className="relative w-full">
               <input
                 type="text"

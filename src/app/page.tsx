@@ -170,12 +170,12 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section className="relative overflow-hidden py-12 sm:py-20 bg-gradient-to-b from-cyan-50/50 via-slate-50 to-white dark:from-slate-900/70 dark:via-[#070b14] dark:to-[#070b14] border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
+        <section className="relative overflow-hidden py-8 sm:py-14 bg-gradient-to-b from-cyan-50/50 via-slate-50 to-white dark:from-slate-900/70 dark:via-[#070b14] dark:to-[#070b14] border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
           {/* Background Tech Glows */}
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               {/* Left Column */}
               <div className="lg:col-span-7 space-y-5 text-center lg:text-left">
@@ -196,7 +196,7 @@ export default function HomePage() {
                 </h1>
 
                 {/* Description */}
-                <p className="text-sm sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                <p className="text-sm sm:text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto lg:mx-0 leading-relaxed">
                   Your one-stop shop for Genuine Computer Accessories, Keypad & Smartphones, Complete Stationery, and Unique Gift Items. Enjoy <strong>Island-wide Cash on Delivery</strong> and <strong>Instant WhatsApp Confirmation</strong>.
                 </p>
 
@@ -329,7 +329,7 @@ export default function HomePage() {
         </section>
 
         {/* SCHOOL SEASON PROMO BANNER (Compact & Elegant - Focus remains on products) */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 relative z-20">
+        <section className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 -mt-4 sm:-mt-6 relative z-20">
           <div className="relative rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-600/15 border border-amber-500/30 p-5 sm:p-6 backdrop-blur-xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4 text-center md:text-left">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-2xl shrink-0">
@@ -360,7 +360,7 @@ export default function HomePage() {
         </section>
 
         {/* PRODUCT CATALOG SECTION */}
-        <section id="catalog" className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section id="catalog" className="py-8 sm:py-12 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
@@ -515,7 +515,7 @@ export default function HomePage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-5">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -568,9 +568,9 @@ export default function HomePage() {
         </section>
 
         {/* WHY CHOOSE ZENEXIS */}
-        <section className="py-12 bg-slate-100/70 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/80 transition-colors">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-10">
+        <section className="py-10 bg-slate-100/70 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/80 transition-colors">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-8">
               <h2 className="text-2xl font-black text-slate-900 dark:text-white">
                 Why Buy from Zenexis Ambalangoda?
               </h2>
@@ -615,8 +615,8 @@ export default function HomePage() {
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-white dark:bg-[#05070d] border-t border-slate-200 dark:border-slate-800/80 py-10 text-xs text-slate-600 dark:text-slate-400 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="bg-white dark:bg-[#05070d] border-t border-slate-200 dark:border-slate-800/80 py-8 text-xs text-slate-600 dark:text-slate-400 transition-colors">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             {/* Col 1 */}
             <div className="space-y-3">
