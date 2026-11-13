@@ -36,6 +36,8 @@ import {
   updateSchoolRequest,
   addNotification,
   syncProductsWithFirestore,
+  syncOrdersWithFirestore,
+  syncSchoolRequestsWithFirestore,
 } from '@/lib/storage';
 import { analyzeProductWithAI, testGeminiApiKey } from '@/lib/gemini';
 import { SHOP_CONFIG, CATEGORIES, SCHOOL_GRADES, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
@@ -125,11 +127,28 @@ export default function AdminPage() {
   const [fbSavedMsg, setFbSavedMsg] = useState(false);
   const [isTestingSync, setIsTestingSync] = useState(false);
   const [testSyncResult, setTestSyncResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
+  const [isRefreshingCloud, setIsRefreshingCloud] = useState(false);
 
   const loadData = () => {
     setProducts(getStoredProducts());
     setOrders(getStoredOrders());
     setSchoolRequests(getStoredSchoolRequests());
+  };
+
+  const syncAllFromCloud = async () => {
+    setIsRefreshingCloud(true);
+    try {
+      await Promise.allSettled([
+        syncOrdersWithFirestore(),
+        syncSchoolRequestsWithFirestore(),
+        syncProductsWithFirestore(),
+      ]);
+      loadData();
+    } catch (err) {
+      console.warn('Cloud sync error:', err);
+    } finally {
+      setIsRefreshingCloud(false);
+    }
   };
 
   useEffect(() => {
@@ -169,10 +188,21 @@ export default function AdminPage() {
       if (currentFb.collectionName) setFbCollectionName(currentFb.collectionName);
     }
     loadData();
+
+    // Trigger initial background cloud sync from Firestore
+    syncAllFromCloud();
+
+    // Auto-poll Firestore every 20 seconds for incoming customer orders
+    const pollInterval = setInterval(() => {
+      syncOrdersWithFirestore().then(loadData);
+      syncSchoolRequestsWithFirestore().then(loadData);
+    }, 20000);
+
     window.addEventListener('zenexis_products_updated', loadData);
     window.addEventListener('zenexis_orders_updated', loadData);
     window.addEventListener('zenexis_school_updated', loadData);
     return () => {
+      clearInterval(pollInterval);
       window.removeEventListener('zenexis_products_updated', loadData);
       window.removeEventListener('zenexis_orders_updated', loadData);
       window.removeEventListener('zenexis_school_updated', loadData);
@@ -940,24 +970,37 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              {/* Order Search Box */}
-              <div className="relative w-full md:w-80">
-                <SearchIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={orderSearch}
-                  onChange={(e) => setOrderSearch(e.target.value)}
-                  placeholder="Search order #, customer, phone..."
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
-                />
-                {orderSearch && (
-                  <button
-                    onClick={() => setOrderSearch('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-1"
-                  >
-                    ✕
-                  </button>
-                )}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={syncAllFromCloud}
+                  disabled={isRefreshingCloud}
+                  className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-xs font-bold text-slate-300 hover:text-white transition flex items-center gap-1.5 shrink-0"
+                  title="Fetch latest orders from Google Cloud Firestore"
+                >
+                  <span className={isRefreshingCloud ? 'animate-spin inline-block' : 'inline-block'}>🔄</span>
+                  <span className="hidden sm:inline">{isRefreshingCloud ? 'Syncing...' : 'Sync Cloud Orders'}</span>
+                </button>
+
+                {/* Order Search Box */}
+                <div className="relative w-full md:w-72">
+                  <SearchIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    placeholder="Search order #, customer, phone..."
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+                  />
+                  {orderSearch && (
+                    <button
+                      onClick={() => setOrderSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-1"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

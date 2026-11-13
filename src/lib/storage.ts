@@ -6,6 +6,8 @@ import {
   saveOrderToFirestore,
   saveSchoolRequestToFirestore,
   fetchProductsFromFirestore,
+  fetchOrdersFromFirestore,
+  fetchSchoolRequestsFromFirestore,
   isFirebaseConnected,
 } from './firebase';
 import { compressImageToDataUrl } from './imageUtils';
@@ -241,6 +243,44 @@ export const saveStoredOrders = (orders: Order[]) => {
   window.dispatchEvent(new Event('zenexis_orders_updated'));
 };
 
+/**
+ * Sync orders directly with Google Cloud Firestore 'online_orders'
+ */
+export const syncOrdersWithFirestore = async (): Promise<Order[]> => {
+  if (!isFirebaseConnected()) {
+    return getStoredOrders();
+  }
+  try {
+    const res = await fetchOrdersFromFirestore();
+    if (res.success && res.orders) {
+      const local = getStoredOrders();
+      const orderMap = new Map<string, Order>();
+
+      // First populate with local
+      local.forEach((o) => {
+        const key = o.orderNumber || o.id;
+        orderMap.set(key, o);
+      });
+
+      // Override with cloud (Firestore is authoritative for cross-device orders)
+      res.orders.forEach((o) => {
+        const key = o.orderNumber || o.id;
+        orderMap.set(key, o);
+      });
+
+      const merged = Array.from(orderMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      saveStoredOrders(merged);
+      return merged;
+    }
+  } catch (err) {
+    console.warn('Failed to sync orders from Firestore:', err);
+  }
+  return getStoredOrders();
+};
+
 export const createOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>): Order => {
   const currentOrders = getStoredOrders();
   const orderNumber = `ZNX-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -319,6 +359,38 @@ export const saveStoredSchoolRequests = (requests: SchoolListRequest[]) => {
   if (!isClient) return;
   localStorage.setItem(KEYS.SCHOOL_REQUESTS, JSON.stringify(requests));
   window.dispatchEvent(new Event('zenexis_school_updated'));
+};
+
+/**
+ * Sync school booklist requests directly with Google Cloud Firestore
+ */
+export const syncSchoolRequestsWithFirestore = async (): Promise<SchoolListRequest[]> => {
+  if (!isFirebaseConnected()) {
+    return getStoredSchoolRequests();
+  }
+  try {
+    const res = await fetchSchoolRequestsFromFirestore();
+    if (res.success && res.requests) {
+      const local = getStoredSchoolRequests();
+      const reqMap = new Map<string, SchoolListRequest>();
+      local.forEach((r) => {
+        const key = r.requestNumber || r.id;
+        reqMap.set(key, r);
+      });
+      res.requests.forEach((r) => {
+        const key = r.requestNumber || r.id;
+        reqMap.set(key, r);
+      });
+      const merged = Array.from(reqMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      saveStoredSchoolRequests(merged);
+      return merged;
+    }
+  } catch (err) {
+    console.warn('Failed to sync school requests from Firestore:', err);
+  }
+  return getStoredSchoolRequests();
 };
 
 export const createSchoolRequest = (

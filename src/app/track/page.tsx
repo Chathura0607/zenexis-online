@@ -16,7 +16,8 @@ import {
   ArrowRightIcon,
 } from '@/components/icons';
 import { Order, OrderStatus } from '@/types';
-import { getStoredOrders } from '@/lib/storage';
+import { getStoredOrders, syncOrdersWithFirestore } from '@/lib/storage';
+import { fetchSingleOrderFromFirestore } from '@/lib/firebase';
 import { SHOP_CONFIG, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 import { createWhatsAppUrl } from '@/lib/whatsapp';
 
@@ -28,37 +29,93 @@ function TrackOrderContent() {
   const [searchedOrder, setSearchedOrder] = useState<Order | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [isSearchingCloud, setIsSearchingCloud] = useState(false);
 
   useEffect(() => {
-    const orders = getStoredOrders();
-    setAllOrders(orders);
-    if (initialQuery) {
-      const match = orders.find(
-        (o) =>
-          o.orderNumber.toLowerCase() === initialQuery.toLowerCase() ||
-          o.id.toLowerCase() === initialQuery.toLowerCase()
-      );
-      if (match) {
-        setSearchedOrder(match);
-        setHasSearched(true);
+    let isMounted = true;
+
+    const initOrders = async () => {
+      // 1. Load instant local orders
+      const local = getStoredOrders();
+      setAllOrders(local);
+
+      if (initialQuery) {
+        const queryClean = initialQuery.trim().toLowerCase();
+        const localMatch = local.find(
+          (o) =>
+            o.orderNumber.toLowerCase() === queryClean ||
+            o.id.toLowerCase() === queryClean
+        );
+        if (localMatch) {
+          setSearchedOrder(localMatch);
+          setHasSearched(true);
+        }
+
+        // 2. Fetch fresh live status directly from Firestore
+        try {
+          setIsSearchingCloud(true);
+          const cloudRes = await fetchSingleOrderFromFirestore(initialQuery);
+          if (isMounted && cloudRes.success && cloudRes.order) {
+            setSearchedOrder(cloudRes.order);
+            setHasSearched(true);
+          }
+        } catch {
+          // ignore network failure
+        } finally {
+          if (isMounted) setIsSearchingCloud(false);
+        }
       }
-    }
+
+      // Background sync all orders
+      syncOrdersWithFirestore().then((synced) => {
+        if (isMounted && synced.length > 0) {
+          setAllOrders(synced);
+        }
+      });
+    };
+
+    initOrders();
+    return () => {
+      isMounted = false;
+    };
   }, [initialQuery]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     const query = searchQuery.trim().toLowerCase();
-    const match = allOrders.find(
+    const localMatch = allOrders.find(
       (o) =>
         o.orderNumber.toLowerCase() === query ||
         o.phone.replace(/[^0-9]/g, '').includes(query.replace(/[^0-9]/g, '')) ||
         o.id.toLowerCase() === query
     );
 
-    setSearchedOrder(match || null);
-    setHasSearched(true);
+    if (localMatch) {
+      setSearchedOrder(localMatch);
+      setHasSearched(true);
+    }
+
+    // Always query Cloud Firestore as well to get cross-device orders or latest status
+    setIsSearchingCloud(true);
+    try {
+      const cloudRes = await fetchSingleOrderFromFirestore(searchQuery.trim());
+      if (cloudRes.success && cloudRes.order) {
+        setSearchedOrder(cloudRes.order);
+        setHasSearched(true);
+      } else if (!localMatch) {
+        setSearchedOrder(null);
+        setHasSearched(true);
+      }
+    } catch {
+      if (!localMatch) {
+        setSearchedOrder(null);
+        setHasSearched(true);
+      }
+    } finally {
+      setIsSearchingCloud(false);
+    }
   };
 
   const getStepStatus = (
@@ -155,9 +212,10 @@ function TrackOrderContent() {
             </div>
             <button
               type="submit"
-              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs sm:text-sm rounded-2xl transition shadow-lg shadow-cyan-500/20 shrink-0"
+              disabled={isSearchingCloud}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-slate-950 font-black text-xs sm:text-sm rounded-2xl transition shadow-lg shadow-cyan-500/20 shrink-0"
             >
-              Track
+              {isSearchingCloud ? 'Checking Cloud...' : 'Track'}
             </button>
           </form>
         </div>
@@ -168,9 +226,15 @@ function TrackOrderContent() {
             {/* Order Status Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
               <div>
-                <span className="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
-                  Tracking Order
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+                    Tracking Order
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live Cloud Connected
+                  </span>
+                </div>
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
                   #{searchedOrder.orderNumber}
                 </h2>

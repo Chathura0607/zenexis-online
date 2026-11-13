@@ -364,8 +364,32 @@ export async function saveOrderToFirestore(
     docId
   )}?key=${encodeURIComponent(config.apiKey)}`;
 
+  // Sanitize order items so large base64 image strings aren't duplicated into orders
+  const sanitizedOrder: Order = {
+    ...order,
+    items: (order.items || []).map((item) => ({
+      quantity: item.quantity,
+      product: {
+        id: item.product.id,
+        name: item.product.name,
+        nameSi: item.product.nameSi,
+        category: item.product.category,
+        price: item.product.price,
+        originalPrice: item.product.originalPrice,
+        description: item.product.description || '',
+        inStock: item.product.inStock,
+        stockCount: item.product.stockCount,
+        tags: item.product.tags || [],
+        rating: item.product.rating || 5,
+        reviewsCount: item.product.reviewsCount || 1,
+        // Only keep short image URLs, strip out multi-megabyte base64 strings from order snapshots
+        image: item.product.image && item.product.image.length < 500 ? item.product.image : '',
+      },
+    })),
+  };
+
   try {
-    const fields = toFirestoreFields(order);
+    const fields = toFirestoreFields(sanitizedOrder);
     const res = await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -379,6 +403,138 @@ export async function saveOrderToFirestore(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to save order to Firestore' };
+  }
+}
+
+/**
+ * Fetch all customer orders from Firestore 'online_orders' collection
+ */
+export async function fetchOrdersFromFirestore(): Promise<{
+  success: boolean;
+  orders: Order[];
+  error?: string;
+}> {
+  const config = getFirebaseConfig();
+  if (!config || !config.projectId || config.projectId === 'projectId' || !config.apiKey) {
+    return { success: false, orders: [], error: 'Firebase not configured' };
+  }
+
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+    config.projectId
+  )}/databases/(default)/documents/online_orders?pageSize=150&key=${encodeURIComponent(
+    config.apiKey
+  )}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      return { success: false, orders: [], error: errJson?.error?.message || `HTTP ${res.status}` };
+    }
+
+    const data = await res.json();
+    if (!data.documents || !Array.isArray(data.documents)) {
+      return { success: true, orders: [] };
+    }
+
+    const orders: Order[] = data.documents.map((doc: any) => {
+      const { id, data: docData } = parseFirestoreDoc(doc);
+      return {
+        id: docData.id || id,
+        orderNumber: docData.orderNumber || id,
+        customerName: docData.customerName || 'Customer',
+        phone: docData.phone || '',
+        address: docData.address,
+        city: docData.city || 'Ambalangoda',
+        items: Array.isArray(docData.items) ? docData.items : [],
+        subtotal: Number(docData.subtotal || 0),
+        deliveryFee: Number(docData.deliveryFee || 0),
+        discount: Number(docData.discount || 0),
+        total: Number(docData.total || 0),
+        status: (docData.status as Order['status']) || 'pending',
+        paymentMethod: docData.paymentMethod || 'cod',
+        deliveryMethod: docData.deliveryMethod || 'islandwide_delivery',
+        notes: docData.notes,
+        scheduledPickupDate: docData.scheduledPickupDate,
+        scheduledPickupTime: docData.scheduledPickupTime,
+        trackingNumber: docData.trackingNumber,
+        createdAt: docData.createdAt || new Date().toISOString(),
+        updatedAt: docData.updatedAt || new Date().toISOString(),
+      };
+    });
+
+    orders.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return { success: true, orders };
+  } catch (err: any) {
+    return { success: false, orders: [], error: err?.message || 'Failed to fetch orders from Firestore' };
+  }
+}
+
+/**
+ * Fetch a single order by orderNumber or ID from Firestore
+ */
+export async function fetchSingleOrderFromFirestore(
+  orderNumberOrId: string
+): Promise<{ success: boolean; order?: Order; error?: string }> {
+  const config = getFirebaseConfig();
+  if (!config || !config.projectId || config.projectId === 'projectId' || !config.apiKey) {
+    return { success: false, error: 'Firebase not configured' };
+  }
+
+  const cleanId = orderNumberOrId.trim();
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+    config.projectId
+  )}/databases/(default)/documents/online_orders/${encodeURIComponent(
+    cleanId
+  )}?key=${encodeURIComponent(config.apiKey)}`;
+
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const doc = await res.json();
+      const { id, data: docData } = parseFirestoreDoc(doc);
+      const order: Order = {
+        id: docData.id || id,
+        orderNumber: docData.orderNumber || id,
+        customerName: docData.customerName || 'Customer',
+        phone: docData.phone || '',
+        address: docData.address,
+        city: docData.city || 'Ambalangoda',
+        items: Array.isArray(docData.items) ? docData.items : [],
+        subtotal: Number(docData.subtotal || 0),
+        deliveryFee: Number(docData.deliveryFee || 0),
+        discount: Number(docData.discount || 0),
+        total: Number(docData.total || 0),
+        status: (docData.status as Order['status']) || 'pending',
+        paymentMethod: docData.paymentMethod || 'cod',
+        deliveryMethod: docData.deliveryMethod || 'islandwide_delivery',
+        notes: docData.notes,
+        scheduledPickupDate: docData.scheduledPickupDate,
+        scheduledPickupTime: docData.scheduledPickupTime,
+        trackingNumber: docData.trackingNumber,
+        createdAt: docData.createdAt || new Date().toISOString(),
+        updatedAt: docData.updatedAt || new Date().toISOString(),
+      };
+      return { success: true, order };
+    }
+
+    // If not found by direct docId, query list
+    const queryRes = await fetchOrdersFromFirestore();
+    if (queryRes.success) {
+      const found = queryRes.orders.find(
+        (o) =>
+          o.orderNumber.toLowerCase() === cleanId.toLowerCase() ||
+          o.id.toLowerCase() === cleanId.toLowerCase() ||
+          o.phone.replace(/[^0-9]/g, '').includes(cleanId.replace(/[^0-9]/g, ''))
+      );
+      if (found) return { success: true, order: found };
+    }
+    return { success: false, error: 'Order not found' };
+  } catch (err: any) {
+    return { success: false, error: err?.message };
   }
 }
 
@@ -415,6 +571,70 @@ export async function saveSchoolRequestToFirestore(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to save request to Firestore' };
+  }
+}
+
+/**
+ * Fetch school requests from Firestore 'school_requests' collection
+ */
+export async function fetchSchoolRequestsFromFirestore(): Promise<{
+  success: boolean;
+  requests: SchoolListRequest[];
+  error?: string;
+}> {
+  const config = getFirebaseConfig();
+  if (!config || !config.projectId || config.projectId === 'projectId' || !config.apiKey) {
+    return { success: false, requests: [], error: 'Firebase not configured' };
+  }
+
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+    config.projectId
+  )}/databases/(default)/documents/school_requests?pageSize=100&key=${encodeURIComponent(
+    config.apiKey
+  )}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      return { success: false, requests: [], error: errJson?.error?.message || `HTTP ${res.status}` };
+    }
+
+    const data = await res.json();
+    if (!data.documents || !Array.isArray(data.documents)) {
+      return { success: true, requests: [] };
+    }
+
+    const requests: SchoolListRequest[] = data.documents.map((doc: any) => {
+      const { id, data: docData } = parseFirestoreDoc(doc);
+      return {
+        id: docData.id || id,
+        requestNumber: docData.requestNumber || id,
+        parentName: docData.parentName || 'Parent',
+        studentName: docData.studentName || 'Student',
+        phone: docData.phone || '',
+        schoolName: docData.schoolName || '',
+        grade: docData.grade || 'grade_1',
+        medium: docData.medium || 'sinhala',
+        photos: Array.isArray(docData.photos) ? docData.photos : [],
+        notes: docData.notes,
+        status: docData.status || 'pending_review',
+        deliveryMethod: docData.deliveryMethod || 'pickup',
+        address: docData.address,
+        city: docData.city || 'Ambalangoda',
+        estimatedTotal: docData.estimatedTotal ? Number(docData.estimatedTotal) : undefined,
+        createdAt: docData.createdAt || new Date().toISOString(),
+        updatedAt: docData.updatedAt || new Date().toISOString(),
+      };
+    });
+
+    requests.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return { success: true, requests };
+  } catch (err: any) {
+    return { success: false, requests: [], error: err?.message };
   }
 }
 
