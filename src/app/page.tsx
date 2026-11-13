@@ -38,6 +38,7 @@ import {
   syncProductsWithFirestore,
   getWishlist,
   getRecentlyViewed,
+  addToCart,
 } from '@/lib/storage';
 import { CATEGORIES, SHOP_CONFIG } from '@/lib/constants';
 import { createWhatsAppUrl } from '@/lib/whatsapp';
@@ -68,6 +69,11 @@ export default function HomePage() {
     setCustomer(getLoggedInCustomer());
     setWishlistIds(getWishlist());
     setRecentlyViewedIds(getRecentlyViewed());
+  };
+
+  const handleInstantBuy = (product: Product) => {
+    addToCart(product, 1);
+    setIsCartOpen(true);
   };
 
   const scrollToCatalogDirect = (e?: React.MouseEvent) => {
@@ -602,6 +608,7 @@ export default function HomePage() {
                   key={product.id}
                   product={product}
                   onOpenDetails={(p) => setSelectedProduct(p)}
+                  onInstantBuy={handleInstantBuy}
                 />
               ))}
             </div>
@@ -641,6 +648,7 @@ export default function HomePage() {
                     key={`recent-${p.id}`}
                     product={p}
                     onOpenDetails={(selected) => setSelectedProduct(selected)}
+                    onInstantBuy={handleInstantBuy}
                   />
                 ))}
               </div>

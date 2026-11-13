@@ -10,9 +10,10 @@ import { getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constant
 interface ProductCardProps {
   product: Product;
   onOpenDetails: (product: Product) => void;
+  onInstantBuy?: (product: Product) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails, onInstantBuy }) => {
   const [added, setAdded] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
 
@@ -30,6 +31,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
     addToCart(product, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
+  };
+
+  const handleInstantBuyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onInstantBuy) {
+      onInstantBuy(product);
+    } else {
+      addToCart(product, 1);
+    }
   };
 
   const handleCardClick = () => {
@@ -166,30 +176,41 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-1.5">
-            {/* Add to Cart Button */}
+          <div className="flex items-center gap-1.5 pt-1">
+            {/* Primary Buy / Order Now Button */}
             <button
-              onClick={handleAddToCart}
+              type="button"
+              onClick={handleInstantBuyClick}
               disabled={!product.inStock}
-              className={`flex-1 py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 shadow-md ${
+              className={`flex-1 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-md ${
                 !product.inStock
                   ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
-                  : added
-                  ? 'bg-emerald-500 text-slate-950 font-black'
-                  : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-cyan-500/20 active:scale-95'
+                  : 'bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 shadow-amber-500/25 active:scale-95 hover:shadow-lg'
               }`}
+              title="Confirm instant order (Cash on Delivery / Pickup)"
+            >
+              <span className="text-[13px] text-slate-950">⚡</span>
+              <span className="tracking-tight text-slate-950">Order Now</span>
+            </button>
+
+            {/* Compact Companion Add to Cart Button */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={!product.inStock}
+              className={`p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border ${
+                !product.inStock
+                  ? 'bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400 cursor-not-allowed'
+                  : added
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-500 font-black'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 text-cyan-600 dark:text-cyan-400 border-slate-200 dark:border-slate-700/80 active:scale-95'
+              }`}
+              title={added ? 'Added to Cart' : 'Add to Shopping Cart'}
             >
               {added ? (
-                <>
-                  <CheckIcon className="w-3.5 h-3.5" />
-                  <span>Added!</span>
-                </>
+                <CheckIcon className="w-4 h-4 text-slate-950" />
               ) : (
-                <>
-                  <ShoppingCartIcon className="w-3.5 h-3.5 text-slate-950 shrink-0" />
-                  <span className="sm:hidden">Add</span>
-                  <span className="hidden sm:inline">Add to Cart</span>
-                </>
+                <ShoppingCartIcon className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
               )}
             </button>
 
@@ -199,11 +220,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="p-2 sm:px-2.5 rounded-xl text-[11px] sm:text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition flex items-center justify-center gap-1 shrink-0"
+              className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition flex items-center justify-center gap-1 shrink-0 active:scale-95"
               title="Ask about this item on WhatsApp"
             >
-              <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-500" />
-              <span className="hidden sm:inline">Ask WP</span>
+              <WhatsAppIcon className="w-4 h-4 fill-emerald-500" />
             </a>
           </div>
         </div>

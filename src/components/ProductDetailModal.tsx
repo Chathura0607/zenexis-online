@@ -69,14 +69,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   if (!product) return null;
 
+  const handleInstantBuy = () => {
+    addToCart(product, qty);
+    onClose();
+    onOpenCart();
+  };
+
   const handleAdd = () => {
     addToCart(product, qty);
     setAdded(true);
     setTimeout(() => {
       setAdded(false);
-      onClose();
-      onOpenCart();
-    }, 900);
+    }, 1500);
   };
 
   const handleToggleFav = () => {
@@ -247,36 +251,55 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
               {/* Action Buttons */}
               <div className="mt-6 flex flex-col gap-2.5">
+                {/* 1. Primary Direct Order / Buy Now Button */}
                 <button
                   type="button"
-                  onClick={handleAdd}
+                  onClick={handleInstantBuy}
                   disabled={!product.inStock}
                   className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-xl ${
                     !product.inStock
                       ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
+                      : 'bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 shadow-amber-500/25 active:scale-98'
+                  }`}
+                >
+                  <span className="text-base text-slate-950">⚡</span>
+                  <span className="tracking-tight text-slate-950">
+                    Confirm Order Now • Rs. {(product.price * qty).toLocaleString()}
+                  </span>
+                </button>
+
+                {/* 2. Secondary Add to Shopping Cart Button */}
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  disabled={!product.inStock}
+                  className={`w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 border ${
+                    !product.inStock
+                      ? 'bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400 cursor-not-allowed'
                       : added
-                      ? 'bg-emerald-500 text-slate-950 font-black'
-                      : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-cyan-500/20 active:scale-98'
+                      ? 'bg-emerald-500 text-slate-950 border-emerald-500 font-black'
+                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 text-cyan-600 dark:text-cyan-400 border-slate-200 dark:border-slate-700/80 active:scale-98'
                   }`}
                 >
                   {added ? (
                     <>
-                      <CheckIcon className="w-4 h-4" />
+                      <CheckIcon className="w-4 h-4 text-slate-950" />
                       <span>Added to Shopping Cart!</span>
                     </>
                   ) : (
                     <>
-                      <ShoppingCartIcon className="w-4 h-4 text-slate-950" />
-                      <span>Add to Cart (Rs. {(product.price * qty).toLocaleString()})</span>
+                      <ShoppingCartIcon className="w-4 h-4" />
+                      <span>Add to Cart (Continue Browsing)</span>
                     </>
                   )}
                 </button>
 
+                {/* 3. Direct WhatsApp Inquire */}
                 <a
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3 px-4 rounded-2xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition flex items-center justify-center gap-2"
                 >
                   <WhatsAppIcon className="w-4 h-4 fill-emerald-500" />
                   <span>Ask Question on WhatsApp (0701120945)</span>

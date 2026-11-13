@@ -130,9 +130,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <ShoppingCartIcon className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-base">Your Cart</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                  {cartItems.length === 1 ? '⚡ Instant Order & Checkout' : 'Shopping Cart & Checkout'}
+                </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {cartItems.reduce((s, i) => s + i.quantity, 0)} items selected
+                  {cartItems.reduce((s, i) => s + i.quantity, 0)} item(s) • Cash on Delivery / Store Pickup
                 </p>
               </div>
             </div>
