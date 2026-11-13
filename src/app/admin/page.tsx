@@ -234,14 +234,22 @@ export default function AdminPage() {
       setNewProductOriginalPrice(analysis.originalPrice || Math.round(analysis.price * 1.2));
       setNewProductDesc(analysis.description);
       setNewProductTags(analysis.tags.join(', '));
+      setGeminiStatus({
+        success: true,
+        message: '✨ Product details successfully generated and ready to review!',
+      });
     } catch (err: any) {
       console.error(err);
       if (err.message === 'GEMINI_API_KEY_REQUIRED') {
-        alert(
-          '🔑 Google Gemini API Key Required!\n\nPlease paste your free Google Gemini API Key in the box above (starts with AIzaSy...) so Gemini AI can scan and extract text from your photo.'
-        );
+        setGeminiStatus({
+          success: false,
+          message: '🔑 Google Gemini API Key Required! Please paste your key from Google AI Studio above.',
+        });
       } else {
-        alert(`AI Vision Error: ${err.message || 'Please adjust fields manually.'}`);
+        setGeminiStatus({
+          success: false,
+          message: `AI Vision notice: ${err.message || 'Details auto-filled with smart template. Please adjust fields as needed.'}`,
+        });
       }
     } finally {
       setIsAiAnalyzing(false);
@@ -1449,7 +1457,7 @@ export default function AdminPage() {
                         type="text"
                         value={geminiApiKey}
                         onChange={(e) => handleApiKeyChange(e.target.value)}
-                        placeholder="Paste Gemini API Key (starts with AIzaSy...)"
+                        placeholder="Paste Gemini API Key (starts with AIzaSy... or AQ...)"
                         className="flex-1 bg-slate-950 border border-purple-500/40 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 font-mono"
                       />
                       <button
