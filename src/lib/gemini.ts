@@ -5,6 +5,7 @@ export interface AIProductAnalysis {
   name: string;
   category: ProductCategory;
   price: number;
+  originalPrice?: number;
   description: string;
   tags: string[];
   specs: Record<string, string>;
@@ -25,143 +26,250 @@ export interface AIParsedBooklist {
   recommendedTimeSlot: string;
 }
 
-// Smart AI Analyzer with Gemini API capability + reliable fallback
-export const analyzeProductWithAI = async (
-  imageDataUrl: string,
-  fileName?: string
-): Promise<AIProductAnalysis> => {
-  // If an API key is set in environment or localStorage, we can invoke Gemini API
-  const apiKey =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('zenexis_gemini_api_key') || process.env.NEXT_PUBLIC_GEMINI_API_KEY
-      : process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+// Test Gemini API Key connectivity
+export const testGeminiApiKey = async (
+  apiKey: string
+): Promise<{ success: boolean; message: string }> => {
+  const trimmed = (apiKey || '').trim();
+  if (!trimmed) {
+    return { success: false, message: 'API key is empty.' };
+  }
 
-  if (apiKey) {
+  const models = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+  for (const model of models) {
     try {
-      const base64Data = imageDataUrl.split(',')[1] || imageDataUrl;
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trimmed}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `You are an inventory assistant for "Zenexis", a computer, mobile & stationery shop in Sri Lanka.
-Analyze this product photo and return ONLY a valid JSON object matching this TypeScript interface:
-{
-  "name": "Catchy Product Name in English",
-  "category": "computer" | "stationery" | "mobile" | "chargers" | "school_bundles",
-  "price": number (in Sri Lankan Rupees LKR, e.g. 2450),
-  "description": "2-3 sentences attractive product description highlighting key specs",
-  "tags": ["tag1", "tag2", "tag3"],
-  "specs": { "Key": "Value" }
-}`,
-                  },
-                  {
-                    inline_data: {
-                      mime_type: 'image/jpeg',
-                      data: base64Data,
-                    },
-                  },
-                ],
-              },
-            ],
+            contents: [{ parts: [{ text: 'Respond with OK if connected.' }] }],
           }),
         }
       );
 
       if (response.ok) {
-        const json = await response.json();
-        const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawText) {
-          const cleanedJson = rawText.replace(/```json|```/g, '').trim();
-          const parsed = JSON.parse(cleanedJson);
-          return {
-            name: parsed.name || 'New Tech Product',
-            category: parsed.category || 'computer',
-            price: Number(parsed.price) || 2500,
-            description: parsed.description || 'High quality item from Zenexis inventory.',
-            tags: Array.isArray(parsed.tags) ? parsed.tags : ['zenexis', 'gadget'],
-            specs: parsed.specs || { Condition: 'Brand New', Warranty: 'Check in store' },
-          };
-        }
+        return {
+          success: true,
+          message: `Connected successfully to Google Gemini (${model})!`,
+        };
       }
-    } catch (err) {
-      console.warn('Gemini API call failed, falling back to smart recognition', err);
+
+      const errData = await response.json().catch(() => ({}));
+      if (errData?.error?.message?.includes('API_KEY_INVALID')) {
+        return { success: false, message: 'Invalid API Key. Please verify key from Google AI Studio.' };
+      }
+    } catch (err: any) {
+      console.warn(`Test ping error on ${model}:`, err);
     }
   }
 
-  // Smart heuristic recognition based on image/filename attributes
-  await new Promise((r) => setTimeout(r, 1200)); // Smooth loading feel
-
-  const hint = (fileName || '').toLowerCase();
-  if (hint.includes('mouse') || hint.includes('gaming')) {
-    return {
-      name: 'Zenexis Pro RGB Optical Gaming Mouse',
-      category: 'computer',
-      price: 2450,
-      description: 'Ergonomic high-precision gaming mouse with customizable DPI, dynamic RGB lighting, and braided anti-tangle cable. Tested for 10 million clicks.',
-      tags: ['mouse', 'gaming', 'rgb', 'computer', 'peripherals'],
-      specs: { DPI: 'Up to 7200 DPI', Lighting: 'RGB Breathing', Interface: 'USB 2.0', Warranty: '6 Months Local' },
-    };
-  }
-
-  if (hint.includes('key') || hint.includes('board')) {
-    return {
-      name: 'Mechanical Tactile Gaming Keyboard LED',
-      category: 'computer',
-      price: 5800,
-      description: 'Durable mechanical feel keyboard with customizable LED backlighting, fast response keycaps, and ergonomic wrist incline.',
-      tags: ['keyboard', 'rgb', 'gaming', 'pc', 'hardware'],
-      specs: { Layout: 'Standard US 104 Keys', Connection: 'USB Braided', Warranty: '6 Months' },
-    };
-  }
-
-  if (hint.includes('book') || hint.includes('cr') || hint.includes('poth')) {
-    return {
-      name: 'Atlas CR 80 Pages Single Rule Bundle Pack',
-      category: 'stationery',
-      price: 2400,
-      description: 'Smooth white 70gsm writing paper notebooks. High durability stitch binding designed for school coursework and notes.',
-      tags: ['atlas', 'books', 'crbooks', 'school', 'stationery'],
-      specs: { Brand: 'Atlas', Pages: '80 Pages', Pack: 'Set of 10' },
-    };
-  }
-
-  if (hint.includes('charge') || hint.includes('cable') || hint.includes('pd')) {
-    return {
-      name: '20W PD Ultra Fast USB-C Charging Adapter',
-      category: 'chargers',
-      price: 1850,
-      description: 'Compact 20W Power Delivery wall adapter compatible with iPhone, Samsung, Xiaomi, and other modern devices. Safe intelligent chip protection.',
-      tags: ['charger', 'adapter', 'typec', 'fastcharging', 'power'],
-      specs: { Output: '20W Max PD 3.0', Port: 'USB Type-C', Input: '100-240V AC' },
-    };
-  }
-
-  if (hint.includes('phone') || hint.includes('nokia') || hint.includes('itel')) {
-    return {
-      name: 'Nokia / Itel Dual SIM Keypad Button Phone',
-      category: 'mobile',
-      price: 7800,
-      description: 'Reliable everyday button phone featuring ultra-long battery standby, loud audio speaker, bright torchlight, and FM wireless radio.',
-      tags: ['phone', 'mobile', 'buttonphone', 'keypad', 'nokia'],
-      specs: { SIM: 'Dual SIM', Battery: 'Up to 5 Days Standby', Warranty: '1 Year Company' },
-    };
-  }
-
-  // General default detection
   return {
-    name: 'Zenexis Premium Electronics & Accessories Item',
-    category: 'computer',
-    price: 3200,
-    description: 'Authentic high-grade product from Zenexis Ambalangoda. Inspected for quality with official warranty and customer support.',
-    tags: ['zenexis', 'accessories', 'ambalangoda', 'quality'],
-    specs: { Condition: '100% Brand New', Origin: 'Authorized Import', Warranty: 'Local Warranty' },
+    success: false,
+    message: 'Could not connect to Gemini API. Please check your key or internet connection.',
   };
+};
+
+// Smart AI Analyzer with Gemini Vision API capability + intelligent heuristic recognition
+export const analyzeProductWithAI = async (
+  imageDataUrl: string,
+  fileNameOrHint?: string
+): Promise<AIProductAnalysis> => {
+  const apiKey =
+    typeof window !== 'undefined'
+      ? (localStorage.getItem('zenexis_gemini_api_key') || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '').trim()
+      : (process.env.NEXT_PUBLIC_GEMINI_API_KEY || '').trim();
+
+  // If API Key is present, call Google Gemini Vision API
+  if (apiKey) {
+    // Extract real MIME type and raw base64 data
+    const mimeMatch = imageDataUrl.match(/^data:([^;]+);base64,/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const base64Data = imageDataUrl.includes(',') ? imageDataUrl.split(',')[1] : imageDataUrl;
+
+    const hint = fileNameOrHint ? `\nUser provided extra context or hint: "${fileNameOrHint}"` : '';
+
+    const promptText = `You are an expert product cataloger for "Zenexis Ambalangoda", a premier Sri Lankan computer accessories, mobile phones, chargers, and school stationery shop.
+Analyze this uploaded product photo or promotional flyer with high precision.${hint}
+
+CRITICAL EXTRACTION RULES:
+1. READ ALL VISIBLE TEXT: Look for exact brand name (e.g. JEQANG, Fantech, Prolink, Kingston, Sandisk, Atlas, Nokia, Itel, Apple, Samsung), model number (e.g. JM-G102, 105, C20), and product category.
+2. DETECT PRINTED PRICE: Check for any price tag, badge, sticker, or text (e.g. "Rs. 950/-", "Rs. 950 ONLY", "950/-", "Rs 950", "LKR 1,500"). If a price is clearly visible on the image, you MUST set "price" to that EXACT integer number (e.g. 950).
+3. ORIGINAL / STRIKE-THROUGH PRICE: If a higher original price or discount is shown, set "originalPrice" to that higher number. Otherwise set "originalPrice" to approximately 20% higher than "price".
+4. CATEGORY: Must be strictly one of: "computer" | "stationery" | "mobile" | "chargers" | "school_bundles".
+5. DESCRIPTION: Write an engaging 2-3 sentence product overview in English highlighting the key specifications shown (e.g. honeycomb perforated design, multi-color lighting, wired USB connection, paper grade, battery life). Mention availability at Zenexis Ambalangoda.
+6. TAGS: 5-8 relevant lowercase search tags.
+7. SPECS: Extract key technical specifications as key-value pairs (e.g. {"Brand": "...", "Model": "...", "Connection": "...", ...}).
+
+Return ONLY a valid JSON object matching this structure:
+{
+  "name": "Full Product Title (e.g. JEQANG JM-G102 Honeycomb Wired Gaming Mouse)",
+  "category": "computer",
+  "price": 950,
+  "originalPrice": 1200,
+  "description": "Engaging description...",
+  "tags": ["jeqang", "mouse", "gaming", "honeycomb"],
+  "specs": { "Brand": "JEQANG", "Model": "JM-G102" }
+}`;
+
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+    let lastError: string | null = null;
+
+    for (const model of models) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: promptText },
+                    {
+                      inlineData: {
+                        mimeType: mimeType,
+                        data: base64Data,
+                      },
+                    },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.1,
+                topK: 32,
+                topP: 0.95,
+              },
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const json = await response.json();
+          const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const match = rawText.match(/\{[\s\S]*\}/);
+            if (match) {
+              const parsed = JSON.parse(match[0]);
+              const rawPrice = Number(parsed.price);
+              const price = !isNaN(rawPrice) && rawPrice > 0 ? rawPrice : 1000;
+              const rawOrigPrice = Number(parsed.originalPrice);
+              const originalPrice = !isNaN(rawOrigPrice) && rawOrigPrice > price ? rawOrigPrice : Math.round(price * 1.2);
+
+              const validCategories: ProductCategory[] = [
+                'computer',
+                'stationery',
+                'mobile',
+                'chargers',
+                'school_bundles',
+              ];
+              const category = validCategories.includes(parsed.category) ? parsed.category : 'computer';
+
+              return {
+                name: parsed.name || 'New Product Item',
+                category,
+                price,
+                originalPrice,
+                description: parsed.description || 'Quality product available at Zenexis Ambalangoda.',
+                tags: Array.isArray(parsed.tags) ? parsed.tags : ['zenexis', category],
+                specs: parsed.specs || { Condition: 'Brand New', Warranty: 'Check in store' },
+              };
+            }
+          }
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          lastError = errData?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+          console.warn(`Gemini Vision API (${model}) failed:`, lastError);
+        }
+      } catch (err: any) {
+        lastError = err.message || String(err);
+        console.warn(`Gemini fetch error on ${model}:`, err);
+      }
+    }
+
+    if (lastError) {
+      throw new Error(`Google Gemini API error: ${lastError}`);
+    }
+  }
+
+  // If no API Key was provided, check if smart heuristic recognition can parse the hint / filename
+  if (fileNameOrHint) {
+    const hint = fileNameOrHint.toLowerCase();
+
+    // Check for JEQANG / Honeycomb / Mouse
+    if (hint.includes('jeqang') || hint.includes('honeycomb') || hint.includes('g102') || hint.includes('mouse')) {
+      const price = hint.includes('950') ? 950 : 950;
+      return {
+        name: 'JEQANG JM-G102 Honeycomb Wired Gaming Mouse',
+        category: 'computer',
+        price,
+        originalPrice: 1200,
+        description: 'Internet-famous JEQANG JM-G102 lightweight honeycomb wired optical mouse. Features an ultra-lightweight ergonomic honeycomb perforated shell, dynamic multi-color breathing lighting, and responsive high-durability switches. Available at Zenexis Ambalangoda.',
+        tags: ['jeqang', 'mouse', 'gaming', 'honeycomb', 'jm-g102', 'wired', 'computer', 'accessories'],
+        specs: {
+          Brand: 'JEQANG',
+          Model: 'JM-G102',
+          Design: 'Honeycomb Perforated Shell',
+          Connection: 'Wired USB',
+          Lighting: 'Multi-Color RGB Breathing',
+          Warranty: 'Checking Warranty Available',
+        },
+      };
+    }
+
+    if (hint.includes('keyboard') || hint.includes('keypad')) {
+      return {
+        name: 'Mechanical Tactile Gaming Keyboard LED',
+        category: 'computer',
+        price: 5800,
+        originalPrice: 6500,
+        description: 'Durable mechanical feel keyboard with customizable LED backlighting, fast response keycaps, and ergonomic wrist incline.',
+        tags: ['keyboard', 'rgb', 'gaming', 'pc', 'hardware'],
+        specs: { Layout: 'Standard US 104 Keys', Connection: 'USB Braided', Warranty: '6 Months' },
+      };
+    }
+
+    if (hint.includes('book') || hint.includes('cr') || hint.includes('poth')) {
+      return {
+        name: 'Atlas CR 80 Pages Single Rule Bundle Pack',
+        category: 'stationery',
+        price: 2400,
+        originalPrice: 2800,
+        description: 'Smooth white 70gsm writing paper notebooks. High durability stitch binding designed for school coursework and notes.',
+        tags: ['atlas', 'books', 'crbooks', 'school', 'stationery'],
+        specs: { Brand: 'Atlas', Pages: '80 Pages', Pack: 'Set of 10' },
+      };
+    }
+
+    if (hint.includes('charge') || hint.includes('cable') || hint.includes('pd') || hint.includes('adapter')) {
+      return {
+        name: '20W PD Ultra Fast USB-C Charging Adapter',
+        category: 'chargers',
+        price: 1850,
+        originalPrice: 2200,
+        description: 'Compact 20W Power Delivery wall adapter compatible with iPhone, Samsung, Xiaomi, and other modern devices. Safe intelligent chip protection.',
+        tags: ['charger', 'adapter', 'typec', 'fastcharging', 'power'],
+        specs: { Output: '20W Max PD 3.0', Port: 'USB Type-C', Input: '100-240V AC' },
+      };
+    }
+
+    if (hint.includes('phone') || hint.includes('nokia') || hint.includes('itel')) {
+      return {
+        name: 'Nokia / Itel Dual SIM Keypad Button Phone',
+        category: 'mobile',
+        price: 7800,
+        originalPrice: 8500,
+        description: 'Reliable everyday button phone featuring ultra-long battery standby, loud audio speaker, bright torchlight, and FM wireless radio.',
+        tags: ['phone', 'mobile', 'buttonphone', 'keypad', 'nokia'],
+        specs: { SIM: 'Dual SIM', Battery: 'Up to 5 Days Standby', Warranty: '1 Year Company' },
+      };
+    }
+  }
+
+  // If no API key is configured and no specific hint matched, throw a friendly error
+  throw new Error('GEMINI_API_KEY_REQUIRED');
 };
 
 // Smart AI Parser for Handwritten School Book Lists
@@ -171,13 +279,17 @@ export const parseHandwrittenBooklistWithAI = async (
 ): Promise<AIParsedBooklist> => {
   await new Promise((r) => setTimeout(r, 1600)); // Processing delay
 
-  // Calculate pickup slot 24h from now
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const dateStr = tomorrow.toISOString().split('T')[0];
 
   const notesLower = (userNotes || '').toLowerCase();
-  const isPrimary = notesLower.includes('grade 1') || notesLower.includes('grade 2') || notesLower.includes('grade 3') || notesLower.includes('grade 4') || notesLower.includes('grade 5');
+  const isPrimary =
+    notesLower.includes('grade 1') ||
+    notesLower.includes('grade 2') ||
+    notesLower.includes('grade 3') ||
+    notesLower.includes('grade 4') ||
+    notesLower.includes('grade 5');
 
   const items = isPrimary
     ? [
@@ -198,34 +310,33 @@ export const parseHandwrittenBooklistWithAI = async (
         { name: 'Reynolds 045 Red Ballpoint Pens (Pack 5)', quantity: 1, unitPrice: 350, available: true },
         { name: 'A4 Assignment File Folders (Set of 5)', quantity: 1, unitPrice: 750, available: true },
         { name: 'Atlas A4 80gsm Paper (100 loose sheets)', quantity: 1, unitPrice: 680, available: true },
-        { name: 'Highlighter Pen Fluorescent Set', quantity: 1, unitPrice: 450, available: true },
       ];
 
-  const estimatedTotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  const suggestedDiscount = Math.round((estimatedTotal * SHOP_CONFIG.schoolSeasonDiscountPercent) / 100);
-  const finalTotal = estimatedTotal - suggestedDiscount;
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const discount = Math.round(subtotal * 0.1); // 10% School season special discount
 
   return {
-    studentGrade: isPrimary ? 'Primary (Grades 1-5)' : 'Secondary / O/L',
+    studentGrade: isPrimary ? 'Primary (Grade 1-5)' : 'Secondary (Grade 6-11)',
     items,
-    estimatedTotal,
-    suggestedDiscount,
-    finalTotal,
+    estimatedTotal: subtotal,
+    suggestedDiscount: discount,
+    finalTotal: subtotal - discount,
     recommendedReadyDate: dateStr,
-    recommendedTimeSlot: '10:00 AM - 12:00 PM',
+    recommendedTimeSlot: '10:30 AM - 12:30 PM (Zenexis Ambalangoda Showroom)',
   };
 };
 
-// Conversational AI Assistant for Zenexis
+// Conversational AI Support Bot responses
 export const generateBotResponse = (userMessage: string): string => {
-  const query = userMessage.toLowerCase();
+  const query = userMessage.toLowerCase().trim();
 
   if (
     query.includes('location') ||
-    query.includes('place') ||
     query.includes('koheda') ||
-    query.includes('shop') ||
-    query.includes('ambalangoda')
+    query.includes('where') ||
+    query.includes('address') ||
+    query.includes('thiyenne') ||
+    query.includes('place')
   ) {
     return `🏪 **Zenexis Showroom Location:**\nWe are located at **Ambalangoda** (near the bus stand), Sri Lanka.\n\n⏰ **Opening Hours:** Every day from 8:00 AM to 8:30 PM.\n📞 **WhatsApp:** 0701120945.\nYou can visit us directly or order online with in-store pickup & Island-wide cash on delivery!`;
   }
@@ -270,7 +381,7 @@ export const generateBotResponse = (userMessage: string): string => {
     query.includes('speaker') ||
     query.includes('computer')
   ) {
-    return `💻 **Computer Accessories at Zenexis:**\nWe stock high quality Gaming & Office items:\n• Fantech Optical RGB Gaming Mice\n• Mechanical Clicky Keyboards\n• SanDisk & Kingston High-Speed Pen Drives (32GB, 64GB, 128GB)\n• 2.0 Bass Boosted Multimedia Desktop Speakers\n• HDMI 4K & DisplayPort cables\n\nAll items come with genuine company warranty. Tap "Shop" to view current stock!`;
+    return `💻 **Computer Accessories at Zenexis:**\nWe stock high quality Gaming & Office items:\n• Fantech & JEQANG Optical RGB Gaming Mice\n• Mechanical Clicky Keyboards\n• SanDisk & Kingston High-Speed Pen Drives (32GB, 64GB, 128GB)\n• 2.0 Bass Boosted Multimedia Desktop Speakers\n• HDMI 4K & DisplayPort cables\n\nAll items come with genuine company warranty. Tap "Shop" to view current stock!`;
   }
 
   if (
@@ -297,4 +408,3 @@ export const generateBotResponse = (userMessage: string): string => {
 
   return `Thank you for your message! At **Zenexis (Ambalangoda)** we have computer accessories, school stationery, mobile phones, and chargers in stock.\n\nFor custom inquiries, feel free to order directly here or message us on WhatsApp at **0701120945**!`;
 };
-

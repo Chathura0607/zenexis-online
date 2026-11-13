@@ -35,7 +35,7 @@ import {
   addNotification,
   syncProductsWithFirestore,
 } from '@/lib/storage';
-import { analyzeProductWithAI } from '@/lib/gemini';
+import { analyzeProductWithAI, testGeminiApiKey } from '@/lib/gemini';
 import { SHOP_CONFIG, CATEGORIES, SCHOOL_GRADES, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 import { createWhatsAppUrl, generateStatusUpdateWhatsAppMessage } from '@/lib/whatsapp';
 
@@ -68,6 +68,11 @@ export default function AdminPage() {
   // AI Product Creator State
   const [aiImagePreview, setAiImagePreview] = useState<string | null>(null);
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
+  const [aiImageFileName, setAiImageFileName] = useState('');
+  const [aiTextHint, setAiTextHint] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [isTestingGemini, setIsTestingGemini] = useState(false);
+  const [geminiStatus, setGeminiStatus] = useState<{ success?: boolean; message?: string } | null>(null);
   const [newProductName, setNewProductName] = useState('');
   const [newProductCategory, setNewProductCategory] = useState<ProductCategory>('computer');
   const [newProductPrice, setNewProductPrice] = useState<number>(2500);
@@ -103,6 +108,10 @@ export default function AdminPage() {
     // Check session auth
     if (sessionStorage.getItem('zenexis_admin_auth') === 'true') {
       setIsAuthenticated(true);
+    }
+    const savedGeminiKey = localStorage.getItem('zenexis_gemini_api_key') || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+    if (savedGeminiKey) {
+      setGeminiApiKey(savedGeminiKey);
     }
     const currentFb = getFirebaseConfig();
     if (currentFb) {
@@ -140,10 +149,42 @@ export default function AdminPage() {
     sessionStorage.removeItem('zenexis_admin_auth');
   };
 
+  // AI Gemini Key management
+  const handleSaveGeminiKey = async (keyToSave?: string) => {
+    const key = (keyToSave !== undefined ? keyToSave : geminiApiKey).trim();
+    if (!key) {
+      setGeminiStatus({ success: false, message: 'Please enter a valid Gemini API key.' });
+      return;
+    }
+    setIsTestingGemini(true);
+    setGeminiStatus(null);
+    try {
+      const res = await testGeminiApiKey(key);
+      if (res.success) {
+        localStorage.setItem('zenexis_gemini_api_key', key);
+        setGeminiApiKey(key);
+        setGeminiStatus({ success: true, message: 'Google Gemini Vision Connected & Saved Successfully!' });
+      } else {
+        setGeminiStatus({ success: false, message: res.message });
+      }
+    } catch (err: any) {
+      setGeminiStatus({ success: false, message: `Failed to connect: ${err.message || err}` });
+    } finally {
+      setIsTestingGemini(false);
+    }
+  };
+
+  const handleRemoveGeminiKey = () => {
+    localStorage.removeItem('zenexis_gemini_api_key');
+    setGeminiApiKey('');
+    setGeminiStatus(null);
+  };
+
   // AI Image upload & analysis
   const handleAiImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAiImageFileName(file.name);
       const reader = new FileReader();
       reader.onloadend = () => {
         setAiImagePreview(reader.result as string);
@@ -156,17 +197,25 @@ export default function AdminPage() {
   const handleRunAiAnalysis = async () => {
     if (!aiImagePreview) return;
     setIsAiAnalyzing(true);
+    setGeminiStatus(null);
     try {
-      const analysis = await analyzeProductWithAI(aiImagePreview, 'product-photo.jpg');
+      const hint = aiTextHint.trim() || aiImageFileName;
+      const analysis = await analyzeProductWithAI(aiImagePreview, hint);
       setNewProductName(analysis.name);
       setNewProductCategory(analysis.category);
       setNewProductPrice(analysis.price);
-      setNewProductOriginalPrice(Math.round(analysis.price * 1.2));
+      setNewProductOriginalPrice(analysis.originalPrice || Math.round(analysis.price * 1.2));
       setNewProductDesc(analysis.description);
       setNewProductTags(analysis.tags.join(', '));
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('AI recognition encountered an issue. Please adjust fields manually.');
+      if (err.message === 'GEMINI_API_KEY_REQUIRED') {
+        alert(
+          '🔑 Google Gemini API Key Required!\n\nPlease enter your free Google Gemini API Key in the box above so Gemini AI can read product text, brand names, and prices (e.g. Rs. 950/-) from your photo.'
+        );
+      } else {
+        alert(`AI Vision Error: ${err.message || 'Please adjust fields manually.'}`);
+      }
     } finally {
       setIsAiAnalyzing(false);
     }
@@ -930,10 +979,106 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Gemini AI Key Configuration & Status Card */}
+            <div
+              className={`p-4 rounded-2xl border transition ${
+                geminiApiKey
+                  ? 'bg-slate-950/70 border-emerald-500/30'
+                  : 'bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-slate-950 border-purple-500/40'
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-3 h-3 rounded-full shrink-0 ${
+                      geminiApiKey ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                    }`}
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-white">Google Gemini AI Vision</h4>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          geminiApiKey
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}
+                      >
+                        {geminiApiKey ? 'Connected & Active' : 'API Key Required'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {geminiApiKey
+                        ? 'Ready to scan flyers, read brand names & detect exact prices (e.g. Rs. 950/-).'
+                        : 'Connect a free Google Gemini API key to read photos, brand names & exact prices.'}
+                    </p>
+                  </div>
+                </div>
+
+                {geminiApiKey && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveGeminiKey}
+                    className="text-[11px] text-slate-400 hover:text-red-400 underline self-start sm:self-auto transition"
+                  >
+                    Change Key
+                  </button>
+                )}
+              </div>
+
+              {/* Input for API Key if not connected */}
+              {!geminiApiKey && (
+                <div className="mt-3 pt-3 border-t border-slate-800 space-y-2.5">
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={geminiApiKey}
+                      onChange={(e) => setGeminiApiKey(e.target.value)}
+                      placeholder="Paste Gemini API Key (starts with AIzaSy...)"
+                      className="flex-1 bg-slate-950 border border-purple-500/40 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveGeminiKey()}
+                      disabled={isTestingGemini}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow transition disabled:opacity-50 shrink-0"
+                    >
+                      {isTestingGemini ? 'Testing...' : 'Save & Connect'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Free 1,500 requests per day (Forever Free)</span>
+                    <a
+                      href="https://aistudio.google.com/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:text-purple-300 font-bold underline inline-flex items-center gap-1"
+                    >
+                      Get Free Key at Google AI Studio ➔
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Message */}
+              {geminiStatus && (
+                <div
+                  className={`mt-2.5 text-xs p-2.5 rounded-xl border ${
+                    geminiStatus.success
+                      ? 'bg-emerald-950/40 text-emerald-300 border-emerald-500/30'
+                      : 'bg-red-950/40 text-red-300 border-red-500/30'
+                  }`}
+                >
+                  {geminiStatus.message}
+                </div>
+              )}
+            </div>
+
             {/* Photo Upload Area */}
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-2">
-                1. Upload Product Photo:
+                1. Upload Product Photo or Promotional Flyer:
               </label>
               <div className="relative border-2 border-dashed border-purple-500/40 hover:border-purple-400 rounded-2xl p-6 text-center transition bg-slate-950/40">
                 {aiImagePreview ? (
@@ -944,15 +1089,32 @@ export default function AdminPage() {
                       alt="Product to analyze"
                       className="max-h-56 mx-auto rounded-xl object-contain border border-slate-800"
                     />
-                    <button
-                      type="button"
-                      onClick={handleRunAiAnalysis}
-                      disabled={isAiAnalyzing}
-                      className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2 mx-auto"
-                    >
-                      <SparklesIcon className="w-4 h-4" />
-                      <span>{isAiAnalyzing ? 'Gemini AI Analyzing Photo...' : 'Auto-Generate Details with AI'}</span>
-                    </button>
+
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleRunAiAnalysis}
+                        disabled={isAiAnalyzing}
+                        className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2"
+                      >
+                        <SparklesIcon className="w-4 h-4" />
+                        <span>
+                          {isAiAnalyzing ? 'Gemini AI Analyzing Photo...' : 'Auto-Generate Details with AI'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAiImagePreview(null);
+                          setAiImageFileName('');
+                          setIsProductSaved(false);
+                        }}
+                        className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+                      >
+                        Change Photo
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <label className="cursor-pointer block space-y-2">
@@ -968,6 +1130,23 @@ export default function AdminPage() {
                   </label>
                 )}
               </div>
+            </div>
+
+            {/* Optional Hint Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Optional: Product Name or Price Hint:
+              </label>
+              <input
+                type="text"
+                value={aiTextHint}
+                onChange={(e) => setAiTextHint(e.target.value)}
+                placeholder="e.g. JEQANG JM-G102 Honeycomb Mouse 950 (or leave blank for full auto scan)"
+                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-400"
+              />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Guides AI recognition, or works as an instant offline fallback if Gemini API key is not connected.
+              </p>
             </div>
 
             {/* AI Auto-filled Form */}
