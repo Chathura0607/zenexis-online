@@ -38,28 +38,48 @@ export const getAvailableGeminiModels = async (apiKey: string): Promise<string[]
       const data = await res.json();
       if (Array.isArray(data.models)) {
         const supported = data.models
-          .filter((m: any) =>
-            Array.isArray(m.supportedGenerationMethods) &&
-            m.supportedGenerationMethods.includes('generateContent') &&
-            !m.name.toLowerCase().includes('embedding') &&
-            !m.name.toLowerCase().includes('imagen')
-          )
+          .filter((m: any) => {
+            const name = (m.name || '').toLowerCase();
+            // EXCLUDE speech (tts), image-generation only, embeddings, and previews with limit 0
+            if (
+              name.includes('tts') ||
+              name.includes('audio') ||
+              name.includes('-image') ||
+              name.includes('embedding') ||
+              name.includes('imagen') ||
+              name.includes('aqa') ||
+              name.includes('lyria') ||
+              name.includes('banana') ||
+              name.includes('computer-use') ||
+              name.includes('2.5-flash') ||
+              name.includes('1.5-flash') ||
+              name.includes('2.0-flash')
+            ) {
+              return false;
+            }
+            return (
+              Array.isArray(m.supportedGenerationMethods) &&
+              m.supportedGenerationMethods.includes('generateContent')
+            );
+          })
           .map((m: any) => m.name.replace(/^models\//, ''));
 
         if (supported.length > 0) {
-          // Prioritize flash models for speed and multimodal image reading
+          // Prioritize active, free-tier supported 3.x flash models
           supported.sort((a: string, b: string) => {
-            const getScore = (name: string) => {
-              const n = name.toLowerCase();
-              if (n.includes('2.5-flash')) return 100;
-              if (n.includes('2.0-flash')) return 90;
-              if (n.includes('flash-lite')) return 85;
-              if (n.includes('1.5-flash')) return 80;
-              if (n.includes('flash')) return 75;
-              if (n.includes('2.5-pro')) return 60;
-              if (n.includes('2.0-pro')) return 50;
-              if (n.includes('1.5-pro')) return 40;
-              if (n.includes('pro')) return 30;
+            const getScore = (modelName: string) => {
+              const n = modelName.toLowerCase();
+              if (n === 'gemini-3.5-flash') return 100;
+              if (n === 'gemini-3.6-flash') return 95;
+              if (n === 'gemini-3.7-flash') return 90;
+              if (n === 'gemini-flash-lite-latest') return 85;
+              if (n === 'gemini-3.5-flash-lite') return 80;
+              if (n === 'gemini-3.8-flash') return 75;
+              if (n.includes('3.5-flash')) return 70;
+              if (n.includes('3.6-flash')) return 65;
+              if (n.includes('3.7-flash')) return 60;
+              if (n.includes('flash-lite')) return 50;
+              if (n.includes('flash')) return 40;
               return 10;
             };
             return getScore(b) - getScore(a);
@@ -72,13 +92,14 @@ export const getAvailableGeminiModels = async (apiKey: string): Promise<string[]
     console.warn('Could not query ListModels from Google Gemini API:', err);
   }
 
-  // Safe fallback to active production model identifiers (never deprecated -latest aliases)
+  // Safe fallback to verified active production model identifiers
   return [
-    'gemini-2.0-flash',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
+    'gemini-3.5-flash',
+    'gemini-3.6-flash',
+    'gemini-3.7-flash',
+    'gemini-flash-lite-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
   ];
 };
 
