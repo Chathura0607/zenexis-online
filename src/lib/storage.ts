@@ -8,6 +8,7 @@ import {
   fetchProductsFromFirestore,
   isFirebaseConnected,
 } from './firebase';
+import { compressImageToDataUrl } from './imageUtils';
 
 const KEYS = {
   PRODUCTS: 'zenexis_products_v2',
@@ -66,9 +67,19 @@ export const syncProductsWithFirestore = async (): Promise<Product[]> => {
   }
   try {
     const res = await fetchProductsFromFirestore();
-    if (res.success && res.products) {
+    if (res.success && res.products && res.products.length > 0) {
+      // Cloud is primary source of truth across all devices and domains
       saveStoredProducts(res.products);
       return res.products;
+    } else if (res.success && (!res.products || res.products.length === 0)) {
+      // If Firestore collection has 0 items, check if current client has locally added products to upload
+      const local = getStoredProducts();
+      if (local.length > 0) {
+        for (const p of local) {
+          await saveProductToFirestore(p);
+        }
+        return local;
+      }
     }
   } catch (err) {
     console.warn('Failed to background sync Firestore products:', err);
@@ -76,41 +87,77 @@ export const syncProductsWithFirestore = async (): Promise<Product[]> => {
   return getStoredProducts();
 };
 
-export const addProduct = (product: Product) => {
+export const addProduct = async (product: Product): Promise<{ success: boolean; error?: string }> => {
+  // Compress image before saving to avoid large payloads (>1MB)
+  let cleanProduct = { ...product };
+  if (cleanProduct.image && cleanProduct.image.startsWith('data:image')) {
+    try {
+      cleanProduct.image = await compressImageToDataUrl(cleanProduct.image, 800, 800, 0.75);
+    } catch {}
+  }
+
   const current = getStoredProducts();
-  const updated = [product, ...current];
+  const updated = [cleanProduct, ...current.filter((p) => p.id !== cleanProduct.id)];
   saveStoredProducts(updated);
 
-  // Sync to Firestore in background
+  let cloudSuccess = true;
+  let cloudError = undefined;
+
+  // Sync to Firestore
   if (isFirebaseConnected()) {
-    saveProductToFirestore(product).catch((err) =>
-      console.warn('Firestore add product sync warning:', err)
-    );
+    try {
+      const res = await saveProductToFirestore(cleanProduct);
+      if (!res.success) {
+        cloudSuccess = false;
+        cloudError = res.error;
+        console.warn('Firestore add product sync warning:', res.error);
+      }
+    } catch (err: any) {
+      cloudSuccess = false;
+      cloudError = err?.message;
+      console.warn('Firestore sync failed:', err);
+    }
   }
 
   // Auto-broadcast a notification to customers that a new item arrived!
   addNotification({
     id: `notif-${Date.now()}`,
-    title: `✨ New Item Arrived: ${product.name}`,
-    message: `Now available in stock at Zenexis Ambalangoda for Rs. ${product.price.toLocaleString()}! Order online or via WhatsApp.`,
+    title: `✨ New Item Arrived: ${cleanProduct.name}`,
+    message: `Now available in stock at Zenexis Ambalangoda for Rs. ${cleanProduct.price.toLocaleString()}! Order online or via WhatsApp.`,
     type: 'product',
     date: 'Just Now',
     read: false,
-    link: `/#product-${product.id}`,
+    link: `/#product-${cleanProduct.id}`,
   });
+
+  return { success: cloudSuccess, error: cloudError };
 };
 
-export const updateProduct = (updatedProduct: Product) => {
+export const updateProduct = async (updatedProduct: Product): Promise<{ success: boolean; error?: string }> => {
+  let cleanProduct = { ...updatedProduct };
+  if (cleanProduct.image && cleanProduct.image.startsWith('data:image')) {
+    try {
+      cleanProduct.image = await compressImageToDataUrl(cleanProduct.image, 800, 800, 0.75);
+    } catch {}
+  }
+
   const current = getStoredProducts();
-  const updated = current.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+  const updated = current.map((p) => (p.id === cleanProduct.id ? cleanProduct : p));
   saveStoredProducts(updated);
 
-  // Sync to Firestore in background
+  // Sync to Firestore
   if (isFirebaseConnected()) {
-    saveProductToFirestore(updatedProduct).catch((err) =>
-      console.warn('Firestore update product sync warning:', err)
-    );
+    try {
+      const res = await saveProductToFirestore(cleanProduct);
+      if (!res.success) {
+        return { success: false, error: res.error };
+      }
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
   }
+
+  return { success: true };
 };
 
 export const deleteProduct = (id: string) => {

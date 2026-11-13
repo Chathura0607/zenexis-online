@@ -139,10 +139,16 @@ export default function HomePage() {
       }
     }, 2400);
 
-    // Trigger Firestore background sync for live POS products
-    syncProductsWithFirestore().finally(() => {
-      setIsSyncing(false);
-    });
+    // Trigger Firestore cloud sync for live POS products
+    syncProductsWithFirestore()
+      .then((synced) => {
+        if (synced && synced.length > 0) {
+          setProducts(synced);
+        }
+      })
+      .finally(() => {
+        setIsSyncing(false);
+      });
 
     const handleCustUpdate = () => setCustomer(getLoggedInCustomer());
     const handleWishlistUpdate = () => setWishlistIds(getWishlist());

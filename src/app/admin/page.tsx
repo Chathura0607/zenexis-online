@@ -46,6 +46,7 @@ import {
   verifyAdminLogin,
   changeAdminPassword,
 } from '@/lib/security';
+import { compressImageToDataUrl } from '@/lib/imageUtils';
 
 import {
   getFirebaseConfig,
@@ -331,16 +332,22 @@ export default function AdminPage() {
   };
 
   // AI Image upload & analysis
-  const handleAiImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAiImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setAiImageFileName(file.name);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAiImagePreview(reader.result as string);
+      try {
+        const compressed = await compressImageToDataUrl(file, 800, 800, 0.75);
+        setAiImagePreview(compressed);
         setIsProductSaved(false);
-      };
-      reader.readAsDataURL(file);
+      } catch {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAiImagePreview(reader.result as string);
+          setIsProductSaved(false);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -380,17 +387,22 @@ export default function AdminPage() {
     }
   };
 
-  const handleSaveAiProduct = (e: React.FormEvent) => {
+  const handleSaveAiProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProductName.trim() || !aiImagePreview) {
       alert('Please provide product photo and name.');
       return;
     }
 
+    setIsAiAnalyzing(true);
+
     const tagsArray = newProductTags
       .split(',')
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
+
+    // Ensure image is compressed (<80KB) to guarantee smooth cloud sync with Firestore
+    const optimizedImage = await compressImageToDataUrl(aiImagePreview, 800, 800, 0.75);
 
     const created: Product = {
       id: `prod-${Date.now()}`,
@@ -399,7 +411,7 @@ export default function AdminPage() {
       price: Number(newProductPrice) || 1000,
       originalPrice: Number(newProductOriginalPrice) || undefined,
       description: newProductDesc.trim() || 'Quality item from Zenexis inventory.',
-      image: aiImagePreview,
+      image: optimizedImage,
       inStock: true,
       stockCount: Number(newProductStock) || 10,
       tags: tagsArray.length > 0 ? tagsArray : ['zenexis', newProductCategory],
@@ -408,8 +420,14 @@ export default function AdminPage() {
       isFeatured: true,
     };
 
-    addProduct(created);
+    const res = await addProduct(created);
+    setIsAiAnalyzing(false);
     setIsProductSaved(true);
+
+    if (res && res.error) {
+      console.warn('Firestore sync warning:', res.error);
+    }
+
     setTimeout(() => {
       // Reset form
       setAiImagePreview(null);
@@ -418,7 +436,7 @@ export default function AdminPage() {
       setNewProductTags('');
       setIsProductSaved(false);
       setActiveTab('products');
-    }, 1500);
+    }, 1200);
   };
 
   const handleToggleStock = (product: Product) => {
