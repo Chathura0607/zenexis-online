@@ -20,6 +20,8 @@ import {
   BellIcon,
   SearchIcon,
   UserIcon,
+  LockIcon,
+  KeyIcon,
 } from '@/components/icons';
 import { Product, Order, SchoolListRequest, ProductCategory, OrderStatus } from '@/types';
 import {
@@ -38,6 +40,12 @@ import {
 import { analyzeProductWithAI, testGeminiApiKey } from '@/lib/gemini';
 import { SHOP_CONFIG, CATEGORIES, SCHOOL_GRADES, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 import { createWhatsAppUrl, generateStatusUpdateWhatsAppMessage } from '@/lib/whatsapp';
+import {
+  getAdminCredentials,
+  setupInitialAdmin,
+  verifyAdminLogin,
+  changeAdminPassword,
+} from '@/lib/security';
 
 import {
   getFirebaseConfig,
@@ -48,11 +56,26 @@ import {
 } from '@/lib/firebase';
 
 export default function AdminPage() {
-  // Authentication
+  // Authentication & Security
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState(false);
-  const [showPin, setShowPin] = useState(false);
+  const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('admin@zenexis.lk');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Change Password Modal
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'orders' | 'school' | 'products' | 'ai_add' | 'broadcast' | 'firestore'>('orders');
@@ -113,6 +136,24 @@ export default function AdminPage() {
     if (sessionStorage.getItem('zenexis_admin_auth') === 'true') {
       setIsAuthenticated(true);
     }
+
+    // Check if initial admin account is setup
+    const checkAdminSecurity = async () => {
+      try {
+        const creds = await getAdminCredentials();
+        if (!creds || !creds.isSetup) {
+          setIsFirstTimeSetup(true);
+          setAdminEmail('admin@zenexis.lk');
+        } else {
+          setIsFirstTimeSetup(false);
+          if (creds.email) setAdminEmail(creds.email);
+        }
+      } catch (err) {
+        console.warn('Admin credentials check warning:', err);
+      }
+    };
+    checkAdminSecurity();
+
     const savedGeminiKey = localStorage.getItem('zenexis_gemini_api_key') || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
     if (savedGeminiKey) {
       setGeminiApiKey(savedGeminiKey);
@@ -137,14 +178,97 @@ export default function AdminPage() {
     };
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleAdminAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput === '2026' || pinInput === '0701120945') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('zenexis_admin_auth', 'true');
-      setPinError(false);
-    } else {
-      setPinError(true);
+    setAuthError('');
+    setAuthLoading(true);
+
+    try {
+      if (isFirstTimeSetup) {
+        const cleanEmail = adminEmail.trim().toLowerCase();
+        if (!cleanEmail || !cleanEmail.includes('@')) {
+          setAuthError('Please enter a valid admin email address.');
+          setAuthLoading(false);
+          return;
+        }
+        if (adminPassword.length < 6) {
+          setAuthError('Master password must be at least 6 characters long.');
+          setAuthLoading(false);
+          return;
+        }
+        if (adminPassword !== confirmPassword) {
+          setAuthError('Passwords do not match. Please retype carefully.');
+          setAuthLoading(false);
+          return;
+        }
+
+        const res = await setupInitialAdmin(cleanEmail, adminPassword);
+        if (res.success) {
+          setIsAuthenticated(true);
+          sessionStorage.setItem('zenexis_admin_auth', 'true');
+          setIsFirstTimeSetup(false);
+          setAdminPassword('');
+          setConfirmPassword('');
+        } else {
+          setAuthError(res.error || 'Failed to setup admin account.');
+        }
+      } else {
+        const res = await verifyAdminLogin(adminEmail, adminPassword);
+        if (res.success) {
+          setIsAuthenticated(true);
+          sessionStorage.setItem('zenexis_admin_auth', 'true');
+          setAdminPassword('');
+        } else if (res.isSetupNeeded) {
+          setIsFirstTimeSetup(true);
+          setAuthError('No admin account found. Please initialize master admin setup.');
+        } else {
+          setAuthError(res.error || 'Incorrect admin email or password. Please try again.');
+        }
+      }
+    } catch (err: any) {
+      setAuthError(err?.message || 'Authentication error occurred.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePasswordError('');
+    setChangePasswordSuccess(false);
+
+    if (!currentPassword) {
+      setChangePasswordError('Please enter your current password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setChangePasswordError('New password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setChangePasswordError('New passwords do not match.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await changeAdminPassword(currentPassword, newPassword);
+      if (res.success) {
+        setChangePasswordSuccess(true);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setTimeout(() => {
+          setIsChangePasswordOpen(false);
+          setChangePasswordSuccess(false);
+        }, 1800);
+      } else {
+        setChangePasswordError(res.error || 'Failed to change password.');
+      }
+    } catch (err: any) {
+      setChangePasswordError(err?.message || 'Password update failed.');
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -426,77 +550,128 @@ export default function AdminPage() {
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[11px] font-bold tracking-wide uppercase mb-2">
               <ShieldCheckIcon className="w-3.5 h-3.5" />
-              <span>Staff Management Portal</span>
+              <span>{isFirstTimeSetup ? 'Initial Security Setup' : 'Staff Management Portal'}</span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-white">Zenexis Admin Access</h1>
+            <h1 className="text-2xl font-black tracking-tight text-white">
+              {isFirstTimeSetup ? 'Setup Master Admin' : 'Zenexis Admin Access'}
+            </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Ambalangoda Showroom • Inventory & Orders System
+              {isFirstTimeSetup
+                ? 'Create your master admin email & password. Passwords are cryptographically salted and hashed.'
+                : 'Ambalangoda Showroom • Inventory, AI & Orders Portal'}
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="text-left space-y-1.5">
-              <label className="block text-xs font-bold text-slate-300">
-                Staff Security PIN:
+          {authError && (
+            <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold text-center flex items-center justify-center gap-2 animate-in fade-in">
+              <span>⚠️</span>
+              <span>{authError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminAuthSubmit} className="space-y-4 text-left">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Admin Email Address:
               </label>
               <div className="relative">
                 <input
-                  type={showPin ? 'text' : 'password'}
+                  type="email"
                   required
-                  value={pinInput}
+                  value={adminEmail}
                   onChange={(e) => {
-                    setPinInput(e.target.value);
-                    setPinError(false);
+                    setAdminEmail(e.target.value);
+                    setAuthError('');
                   }}
-                  placeholder="Enter 4-Digit PIN"
-                  className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-center text-xl font-mono tracking-widest text-white placeholder-slate-600 focus:outline-none transition ${
-                    pinError
-                      ? 'border-red-500 ring-2 ring-red-500/20'
-                      : 'border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20'
-                  }`}
+                  placeholder="admin@zenexis.lk"
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-2xl text-sm font-medium text-white placeholder-slate-600 focus:outline-none transition"
                 />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-300">
+                  {isFirstTimeSetup ? 'Create Master Password:' : 'Admin Password:'}
+                </label>
                 <button
                   type="button"
-                  onClick={() => setShowPin(!showPin)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white transition px-2 py-1 font-bold"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold"
                 >
-                  {showPin ? 'Hide' : 'Show'}
+                  {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
-
-              {pinError && (
-                <p className="text-xs text-red-400 mt-1.5 animate-in fade-in flex items-center gap-1">
-                  <span>⚠️</span>
-                  <span>Incorrect PIN. Please use your showroom staff PIN (Default: 2026).</span>
-                </p>
-              )}
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={adminPassword}
+                  onChange={(e) => {
+                    setAdminPassword(e.target.value);
+                    setAuthError('');
+                  }}
+                  placeholder={isFirstTimeSetup ? 'Min 6 characters' : 'Enter master password'}
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-2xl text-sm font-medium text-white placeholder-slate-600 focus:outline-none transition"
+                />
+              </div>
             </div>
+
+            {isFirstTimeSetup && (
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  Confirm Master Password:
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setAuthError('');
+                    }}
+                    placeholder="Repeat master password"
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-2xl text-sm font-medium text-white placeholder-slate-600 focus:outline-none transition"
+                  />
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-2xl text-sm transition transform active:scale-98 shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2"
+              disabled={authLoading}
+              className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-slate-950 font-black rounded-2xl text-sm transition transform active:scale-98 shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 mt-2"
             >
-              <ShieldCheckIcon className="w-4 h-4" />
-              <span>Unlock Admin Panel</span>
-            </button>
-
-            {/* Quick Demo Fill Helper */}
-            <button
-              type="button"
-              onClick={() => {
-                setPinInput('2026');
-                setPinError(false);
-              }}
-              className="text-[11px] text-slate-500 hover:text-cyan-400 transition block mx-auto"
-            >
-              Quick Fill Demo PIN (2026)
+              <LockIcon className="w-4 h-4" />
+              <span>
+                {authLoading
+                  ? 'Verifying Cryptographic Hash...'
+                  : isFirstTimeSetup
+                  ? 'Save Credentials & Open Dashboard'
+                  : 'Secure Admin Unlock'}
+              </span>
             </button>
           </form>
 
-          <div className="pt-2 border-t border-slate-800/80">
+          {/* Reset / Setup switch */}
+          <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsFirstTimeSetup(!isFirstTimeSetup);
+                setAuthError('');
+              }}
+              className="text-[11px] text-slate-400 hover:text-cyan-400 transition block mx-auto font-medium"
+            >
+              {isFirstTimeSetup
+                ? '← Already configured? Sign in with existing credentials'
+                : 'First-time setup or configure master credentials'}
+            </button>
+
             <Link
               href="/"
-              className="text-xs text-slate-400 hover:text-cyan-400 transition inline-flex items-center gap-1"
+              className="text-xs text-slate-400 hover:text-cyan-400 transition inline-flex items-center justify-center gap-1"
             >
               <span>← Return to Public Storefront</span>
             </Link>
@@ -547,6 +722,18 @@ export default function AdminPage() {
             >
               <span>Live Store ↗</span>
             </Link>
+            <button
+              onClick={() => {
+                setIsChangePasswordOpen(true);
+                setChangePasswordError('');
+                setChangePasswordSuccess(false);
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-300 hover:text-white transition font-medium flex items-center gap-1.5"
+              title="Change Master Admin Password"
+            >
+              <KeyIcon className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Change Password</span>
+            </button>
             <button
               onClick={handleLogout}
               className="px-3.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-xs text-rose-400 border border-rose-500/30 transition font-bold"
@@ -2116,6 +2303,118 @@ export default function AdminPage() {
                 Done Inspecting
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Admin Password Modal */}
+      {isChangePasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative text-left">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                  <KeyIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Change Master Password</h3>
+                  <p className="text-[11px] text-slate-400">Cryptographic SHA-256 with unique salt</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChangePasswordOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            {changePasswordSuccess && (
+              <div className="p-3.5 mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-2">
+                <CheckIcon className="w-4 h-4 shrink-0" />
+                <span>Password changed successfully and securely hashed in database!</span>
+              </div>
+            )}
+
+            {changePasswordError && (
+              <div className="p-3.5 mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{changePasswordError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-300">Current Master Password</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="text-[10px] text-cyan-400 font-semibold"
+                  >
+                    {showCurrentPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-300">New Master Password</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="text-[10px] text-cyan-400 font-semibold"
+                  >
+                    {showNewPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Confirm New Password</label>
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  required
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Retype new password"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsChangePasswordOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-xs text-slate-300 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/25 transition disabled:opacity-50"
+                >
+                  {isChangingPassword ? 'Saving Hash...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

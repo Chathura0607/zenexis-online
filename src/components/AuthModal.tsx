@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { XIcon, GoogleIcon, UserIcon, ShieldCheckIcon, PhoneIcon } from './icons';
 import { CustomerProfile } from '@/types';
 import { saveLoggedInCustomer, addNotification } from '@/lib/storage';
+import { registerCustomerAccount, loginCustomerAccount } from '@/lib/security';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -57,34 +58,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     }, 700);
   };
 
-  const handlePasswordAuth = (e: React.FormEvent) => {
+  const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    if (activeTab === 'signin') {
-      if (!emailOrPhone.trim() || !password.trim()) {
-        setError('Please enter your email/phone and password');
-        setLoading(false);
-        return;
-      }
+    try {
+      if (activeTab === 'signin') {
+        if (!emailOrPhone.trim() || !password.trim()) {
+          setError('Please enter your email/phone and password');
+          setLoading(false);
+          return;
+        }
 
-      setTimeout(() => {
-        const customer: CustomerProfile = {
-          id: `cust-${Date.now()}`,
-          name: emailOrPhone.includes('@') ? emailOrPhone.split('@')[0] : 'Valued Customer',
-          email: emailOrPhone.includes('@') ? emailOrPhone : undefined,
-          phone: !emailOrPhone.includes('@') ? emailOrPhone : '0701120945',
-          authProvider: 'password',
-          city: 'Ambalangoda',
-          address: 'Ambalangoda Town',
-          createdAt: new Date().toISOString(),
-        };
+        const res = await loginCustomerAccount(emailOrPhone, password);
+        if (!res.success || !res.customer) {
+          setError(res.error || 'Invalid phone/email or password');
+          setLoading(false);
+          return;
+        }
 
-        saveLoggedInCustomer(customer);
         addNotification({
           id: `notif-${Date.now()}`,
-          title: `👋 Welcome back, ${customer.name}!`,
+          title: `👋 Welcome back, ${res.customer.name}!`,
           message: 'You have signed in to Zenexis Online store.',
           type: 'order',
           date: 'Just Now',
@@ -92,42 +88,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         });
 
         setLoading(false);
-        if (onSuccess) onSuccess(customer);
+        if (onSuccess) onSuccess(res.customer);
         onClose();
-      }, 500);
-    } else {
-      if (!name.trim() || !phone.trim() || !password.trim()) {
-        setError('Please enter your name, phone number, and password');
-        setLoading(false);
-        return;
-      }
+      } else {
+        if (!name.trim() || !phone.trim() || !password.trim()) {
+          setError('Please enter your name, phone number, and password');
+          setLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters long');
+          setLoading(false);
+          return;
+        }
 
-      setTimeout(() => {
-        const newCustomer: CustomerProfile = {
-          id: `cust-${Date.now()}`,
+        const res = await registerCustomerAccount({
           name: name.trim(),
           phone: phone.trim(),
           email: emailOrPhone.includes('@') ? emailOrPhone.trim() : undefined,
-          address: address.trim(),
-          city: city.trim(),
-          authProvider: 'password',
-          createdAt: new Date().toISOString(),
-        };
+          password: password.trim(),
+          address: address.trim() || 'Ambalangoda',
+          city: city.trim() || 'Ambalangoda',
+        });
 
-        saveLoggedInCustomer(newCustomer);
+        if (!res.success || !res.customer) {
+          setError(res.error || 'Failed to create customer account');
+          setLoading(false);
+          return;
+        }
+
         addNotification({
           id: `notif-${Date.now()}`,
           title: '🎉 Account Created Successfully!',
-          message: `Welcome ${newCustomer.name} to Zenexis Online. Start placing orders with rapid COD & in-store pickup!`,
+          message: `Welcome ${res.customer.name} to Zenexis Online. Passwords are cryptographically hashed and stored securely!`,
           type: 'order',
           date: 'Just Now',
           read: false,
         });
 
         setLoading(false);
-        if (onSuccess) onSuccess(newCustomer);
+        if (onSuccess) onSuccess(res.customer);
         onClose();
-      }, 600);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Authentication failed. Please try again.');
+      setLoading(false);
     }
   };
 
