@@ -150,20 +150,40 @@ export default function AdminPage() {
   };
 
   // AI Gemini Key management
+  const handleApiKeyChange = (val: string) => {
+    setGeminiApiKey(val);
+    const trimmed = val.trim();
+    if (trimmed) {
+      try {
+        localStorage.setItem('zenexis_gemini_api_key', trimmed);
+      } catch {}
+    } else {
+      try {
+        localStorage.removeItem('zenexis_gemini_api_key');
+      } catch {}
+    }
+    setGeminiStatus(null);
+  };
+
   const handleSaveGeminiKey = async (keyToSave?: string) => {
     const key = (keyToSave !== undefined ? keyToSave : geminiApiKey).trim();
     if (!key) {
-      setGeminiStatus({ success: false, message: 'Please enter a valid Gemini API key.' });
+      setGeminiStatus({ success: false, message: 'Please enter or paste your Gemini API key.' });
       return;
     }
+
+    // Always immediately persist key
+    try {
+      localStorage.setItem('zenexis_gemini_api_key', key);
+    } catch {}
+    setGeminiApiKey(key);
     setIsTestingGemini(true);
     setGeminiStatus(null);
+
     try {
       const res = await testGeminiApiKey(key);
       if (res.success) {
-        localStorage.setItem('zenexis_gemini_api_key', key);
-        setGeminiApiKey(key);
-        setGeminiStatus({ success: true, message: 'Google Gemini Vision Connected & Saved Successfully!' });
+        setGeminiStatus({ success: true, message: 'Google Gemini Vision Connected & Verified Successfully!' });
       } else {
         setGeminiStatus({ success: false, message: res.message });
       }
@@ -175,7 +195,9 @@ export default function AdminPage() {
   };
 
   const handleRemoveGeminiKey = () => {
-    localStorage.removeItem('zenexis_gemini_api_key');
+    try {
+      localStorage.removeItem('zenexis_gemini_api_key');
+    } catch {}
     setGeminiApiKey('');
     setGeminiStatus(null);
   };
@@ -200,7 +222,8 @@ export default function AdminPage() {
     setGeminiStatus(null);
     try {
       const hint = aiTextHint.trim() || aiImageFileName;
-      const analysis = await analyzeProductWithAI(aiImagePreview, hint);
+      // Pass geminiApiKey explicitly from state
+      const analysis = await analyzeProductWithAI(aiImagePreview, hint, geminiApiKey);
       setNewProductName(analysis.name);
       setNewProductCategory(analysis.category);
       setNewProductPrice(analysis.price);
@@ -211,7 +234,7 @@ export default function AdminPage() {
       console.error(err);
       if (err.message === 'GEMINI_API_KEY_REQUIRED') {
         alert(
-          '🔑 Google Gemini API Key Required!\n\nPlease enter your free Google Gemini API Key in the box above so Gemini AI can read product text, brand names, and prices (e.g. Rs. 950/-) from your photo.'
+          '🔑 Google Gemini API Key Required!\n\nPlease paste your free Google Gemini API Key in the box above (starts with AIzaSy...) so Gemini AI can scan and extract text from your photo.'
         );
       } else {
         alert(`AI Vision Error: ${err.message || 'Please adjust fields manually.'}`);
@@ -1016,26 +1039,36 @@ export default function AdminPage() {
                 </div>
 
                 {geminiApiKey && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveGeminiKey}
-                    className="text-[11px] text-slate-400 hover:text-red-400 underline self-start sm:self-auto transition"
-                  >
-                    Change Key
-                  </button>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveGeminiKey()}
+                      disabled={isTestingGemini}
+                      className="px-3 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 rounded-lg text-[11px] font-bold transition disabled:opacity-50"
+                    >
+                      {isTestingGemini ? 'Testing...' : 'Test Connection'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveGeminiKey}
+                      className="text-[11px] text-slate-400 hover:text-red-400 underline transition"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 )}
               </div>
 
-              {/* Input for API Key if not connected */}
-              {!geminiApiKey && (
+              {/* Input for API Key */}
+              {!geminiApiKey ? (
                 <div className="mt-3 pt-3 border-t border-slate-800 space-y-2.5">
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
-                      type="password"
+                      type="text"
                       value={geminiApiKey}
-                      onChange={(e) => setGeminiApiKey(e.target.value)}
+                      onChange={(e) => handleApiKeyChange(e.target.value)}
                       placeholder="Paste Gemini API Key (starts with AIzaSy...)"
-                      className="flex-1 bg-slate-950 border border-purple-500/40 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                      className="flex-1 bg-slate-950 border border-purple-500/40 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 font-mono"
                     />
                     <button
                       type="button"
@@ -1047,8 +1080,8 @@ export default function AdminPage() {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Free 1,500 requests per day (Forever Free)</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-400">
+                    <span>Key saves automatically when pasted • 1,500 free requests/day</span>
                     <a
                       href="https://aistudio.google.com/apikey"
                       target="_blank"
@@ -1058,6 +1091,11 @@ export default function AdminPage() {
                       Get Free Key at Google AI Studio ➔
                     </a>
                   </div>
+                </div>
+              ) : (
+                <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                  <span>Key: {geminiApiKey.slice(0, 8)}••••••••{geminiApiKey.slice(-4)}</span>
+                  <span className="text-emerald-400 font-sans font-semibold">Ready to auto-scan</span>
                 </div>
               )}
 

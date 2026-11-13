@@ -35,7 +35,9 @@ export const testGeminiApiKey = async (
     return { success: false, message: 'API key is empty.' };
   }
 
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-latest'];
+  let lastErrMsg = '';
+
   for (const model of models) {
     try {
       const response = await fetch(
@@ -44,7 +46,7 @@ export const testGeminiApiKey = async (
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Respond with OK if connected.' }] }],
+            contents: [{ parts: [{ text: 'Respond with OK' }] }],
           }),
         }
       );
@@ -57,36 +59,51 @@ export const testGeminiApiKey = async (
       }
 
       const errData = await response.json().catch(() => ({}));
-      if (errData?.error?.message?.includes('API_KEY_INVALID')) {
-        return { success: false, message: 'Invalid API Key. Please verify key from Google AI Studio.' };
+      lastErrMsg = errData?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+      if (lastErrMsg.includes('API_KEY_INVALID') || lastErrMsg.includes('key not valid')) {
+        return { success: false, message: 'Invalid API Key. Please copy your key again from Google AI Studio.' };
       }
     } catch (err: any) {
+      lastErrMsg = err.message || String(err);
       console.warn(`Test ping error on ${model}:`, err);
     }
   }
 
   return {
     success: false,
-    message: 'Could not connect to Gemini API. Please check your key or internet connection.',
+    message: lastErrMsg
+      ? `Google Gemini error: ${lastErrMsg}`
+      : 'Could not connect to Gemini API. Please check your internet connection.',
   };
 };
 
 // Smart AI Analyzer with Gemini Vision API capability + intelligent heuristic recognition
 export const analyzeProductWithAI = async (
   imageDataUrl: string,
-  fileNameOrHint?: string
+  fileNameOrHint?: string,
+  customApiKey?: string
 ): Promise<AIProductAnalysis> => {
-  const apiKey =
-    typeof window !== 'undefined'
-      ? (localStorage.getItem('zenexis_gemini_api_key') || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '').trim()
-      : (process.env.NEXT_PUBLIC_GEMINI_API_KEY || '').trim();
+  const apiKey = (
+    customApiKey ||
+    (typeof window !== 'undefined' ? localStorage.getItem('zenexis_gemini_api_key') : '') ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+    ''
+  ).trim();
 
   // If API Key is present, call Google Gemini Vision API
   if (apiKey) {
+    // If customApiKey was passed, ensure it is persisted in localStorage
+    if (typeof window !== 'undefined' && customApiKey) {
+      try {
+        localStorage.setItem('zenexis_gemini_api_key', customApiKey.trim());
+      } catch {}
+    }
+
     // Extract real MIME type and raw base64 data
     const mimeMatch = imageDataUrl.match(/^data:([^;]+);base64,/);
-    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-    const base64Data = imageDataUrl.includes(',') ? imageDataUrl.split(',')[1] : imageDataUrl;
+    let mimeType = mimeMatch ? mimeMatch[1].toLowerCase() : 'image/jpeg';
+    if (mimeType === 'image/jpg') mimeType = 'image/jpeg';
+    const base64Data = (imageDataUrl.includes(',') ? imageDataUrl.split(',')[1] : imageDataUrl).trim();
 
     const hint = fileNameOrHint ? `\nUser provided extra context or hint: "${fileNameOrHint}"` : '';
 
@@ -113,7 +130,7 @@ Return ONLY a valid JSON object matching this structure:
   "specs": { "Brand": "JEQANG", "Model": "JM-G102" }
 }`;
 
-    const models = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-latest'];
     let lastError: string | null = null;
 
     for (const model of models) {
