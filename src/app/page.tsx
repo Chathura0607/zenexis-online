@@ -101,10 +101,10 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    // If opened on dedicated admin subdomain (e.g. admin.zenexis.lk or admin.zenexis-online.com)
+    // If opened on dedicated admin domain (e.g. zenexis-admin.vercel.app or admin.zenexis.lk)
     if (typeof window !== 'undefined') {
       const host = window.location.hostname.toLowerCase();
-      if (host.startsWith('admin.')) {
+      if (host.startsWith('zenexis-admin') || host.startsWith('admin.')) {
         window.location.replace('/admin');
         return;
       }

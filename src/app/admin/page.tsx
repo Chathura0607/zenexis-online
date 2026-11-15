@@ -1035,13 +1035,18 @@ export default function AdminPage() {
               <SparklesIcon className="w-3.5 h-3.5" />
               <span>AI Photo Add</span>
             </button>
-            <Link
-              href="/"
+            <a
+              href={
+                typeof window !== 'undefined' && window.location.hostname.startsWith('zenexis-admin')
+                  ? 'https://zenexis-online.vercel.app'
+                  : '/'
+              }
               target="_blank"
+              rel="noopener noreferrer"
               className="px-3.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-300 hover:text-white transition font-medium flex items-center gap-1"
             >
               <span>Live Store ↗</span>
-            </Link>
+            </a>
             <button
               onClick={() => {
                 setIsChangePasswordOpen(true);
