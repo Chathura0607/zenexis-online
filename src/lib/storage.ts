@@ -22,7 +22,7 @@ const KEYS = {
   NOTIFICATIONS: 'zenexis_notifications_v1',
   CART: 'zenexis_cart_v1',
   CUSTOMER: 'zenexis_customer_v1',
-  THEME: 'zenexis_theme_v1',
+  THEME: 'zenexis_theme_v2',
   REVIEWS: 'zenexis_reviews_v1',
   WISHLIST: 'zenexis_wishlist_v1',
   RECENTLY_VIEWED: 'zenexis_recently_viewed_v1',
@@ -586,13 +586,13 @@ export const customerLogout = () => {
 
 // --- THEME (DARK / LIGHT MODE) ---
 export const getSavedTheme = (): 'dark' | 'light' => {
-  if (!isClient) return 'dark';
+  if (!isClient) return 'light';
   try {
     const saved = localStorage.getItem(KEYS.THEME);
     if (saved === 'light' || saved === 'dark') return saved;
-    return 'dark';
+    return 'light';
   } catch {
-    return 'dark';
+    return 'light';
   }
 };
 

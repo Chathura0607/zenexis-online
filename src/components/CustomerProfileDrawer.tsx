@@ -29,7 +29,7 @@ export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({
   customer,
 }) => {
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   useEffect(() => {
     setTheme(getSavedTheme());

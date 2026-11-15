@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [customer, setCustomer] = useState<CustomerProfile | null>(null);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   const updateState = () => {
     const cart = getStoredCart();

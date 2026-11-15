@@ -11,7 +11,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#0f172a",
+  themeColor: "#ffffff",
   viewportFit: "cover",
 };
 
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full dark" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" className="h-full light" data-theme="light" suppressHydrationWarning>
       <head>
         <link
           rel="icon"
@@ -42,8 +42,8 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var saved = localStorage.getItem('zenexis_theme_v1');
-                  var theme = saved === 'light' ? 'light' : 'dark';
+                  var saved = localStorage.getItem('zenexis_theme_v2');
+                  var theme = saved === 'dark' ? 'dark' : 'light';
                   var root = document.documentElement;
                   root.classList.remove('light', 'dark');
                   root.classList.add(theme);
