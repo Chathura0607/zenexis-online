@@ -24,8 +24,9 @@ import {
   KeyIcon,
   TrendingUpIcon,
   BarChartIcon,
+  BookOpenIcon,
 } from '@/components/icons';
-import { Product, Order, SchoolListRequest, ProductCategory, OrderStatus } from '@/types';
+import { Product, Order, SchoolListRequest, ProductCategory, OrderStatus, StudyResource, StudyResourceCategory } from '@/types';
 import {
   getStoredProducts,
   saveStoredProducts,
@@ -40,6 +41,12 @@ import {
   syncProductsWithFirestore,
   syncOrdersWithFirestore,
   syncSchoolRequestsWithFirestore,
+  getStoredResources,
+  saveStoredResources,
+  addStudyResource,
+  updateStudyResource,
+  deleteStudyResource,
+  syncResourcesWithFirestore,
 } from '@/lib/storage';
 import { analyzeProductWithAI, testGeminiApiKey } from '@/lib/gemini';
 import { SHOP_CONFIG, CATEGORIES, SCHOOL_GRADES, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
@@ -83,7 +90,7 @@ export default function AdminPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'school' | 'products' | 'ai_add' | 'broadcast' | 'firestore'>('orders');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'school' | 'products' | 'resources' | 'ai_add' | 'broadcast' | 'firestore'>('orders');
 
   // Business Intelligence & Profit Analytics State
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'all' | 'today' | '7days' | '30days'>('all');
@@ -95,6 +102,27 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [schoolRequests, setSchoolRequests] = useState<SchoolListRequest[]>([]);
+  const [studyResources, setStudyResources] = useState<StudyResource[]>([]);
+
+  // Study Resources Management State
+  const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<StudyResource | null>(null);
+  const [resTitle, setResTitle] = useState('');
+  const [resTitleSi, setResTitleSi] = useState('');
+  const [resCategory, setResCategory] = useState<StudyResourceCategory>('term_test');
+  const [resGrade, setResGrade] = useState('Grade 10');
+  const [resSubject, setResSubject] = useState('Science');
+  const [resYear, setResYear] = useState('2024');
+  const [resTerm, setResTerm] = useState('2nd Term');
+  const [resMedium, setResMedium] = useState<'sinhala' | 'english' | 'tamil'>('sinhala');
+  const [resDownloadUrl, setResDownloadUrl] = useState('');
+  const [resFileType, setResFileType] = useState('PDF Document');
+  const [resFileSize, setResFileSize] = useState('1.5 MB');
+  const [resDescription, setResDescription] = useState('');
+  const [resIsFeatured, setResIsFeatured] = useState(false);
+  const [isSavingResource, setIsSavingResource] = useState(false);
+  const [resourceSearch, setResourceSearch] = useState('');
+  const [resourceCategoryFilter, setResourceCategoryFilter] = useState('all');
 
   // Admin Order Cancellation State
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
@@ -155,6 +183,7 @@ export default function AdminPage() {
     setProducts(getStoredProducts());
     setOrders(getStoredOrders());
     setSchoolRequests(getStoredSchoolRequests());
+    setStudyResources(getStoredResources());
   };
 
   const syncAllFromCloud = async () => {
@@ -164,6 +193,7 @@ export default function AdminPage() {
         syncOrdersWithFirestore(),
         syncSchoolRequestsWithFirestore(),
         syncProductsWithFirestore(),
+        syncResourcesWithFirestore(),
       ]);
       loadData();
     } catch (err) {
@@ -223,11 +253,13 @@ export default function AdminPage() {
     window.addEventListener('zenexis_products_updated', loadData);
     window.addEventListener('zenexis_orders_updated', loadData);
     window.addEventListener('zenexis_school_updated', loadData);
+    window.addEventListener('zenexis_resources_updated', loadData);
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('zenexis_products_updated', loadData);
       window.removeEventListener('zenexis_orders_updated', loadData);
       window.removeEventListener('zenexis_school_updated', loadData);
+      window.removeEventListener('zenexis_resources_updated', loadData);
     };
   }, []);
 
@@ -559,6 +591,102 @@ export default function AdminPage() {
     if (confirm('Are you sure you want to delete this product from Zenexis catalog?')) {
       deleteProduct(id);
       loadData();
+    }
+  };
+
+  // Study Resource Management Handlers
+  const openAddResourceModal = (item?: StudyResource) => {
+    if (item) {
+      setEditingResource(item);
+      setResTitle(item.title);
+      setResTitleSi(item.titleSi || '');
+      setResCategory(item.category);
+      setResGrade(item.grade);
+      setResSubject(item.subject);
+      setResYear(item.year || '2024');
+      setResTerm(item.term || '2nd Term');
+      setResMedium(item.medium || 'sinhala');
+      setResDownloadUrl(item.downloadUrl);
+      setResFileType(item.fileType || 'PDF Document');
+      setResFileSize(item.fileSize || '1.5 MB');
+      setResDescription(item.description || '');
+      setResIsFeatured(Boolean(item.isFeatured));
+    } else {
+      setEditingResource(null);
+      setResTitle('');
+      setResTitleSi('');
+      setResCategory('term_test');
+      setResGrade('Grade 10');
+      setResSubject('Science');
+      setResYear('2024');
+      setResTerm('2nd Term');
+      setResMedium('sinhala');
+      setResDownloadUrl('');
+      setResFileType('PDF Document');
+      setResFileSize('1.5 MB');
+      setResDescription('');
+      setResIsFeatured(false);
+    }
+    setIsResourceModalOpen(true);
+  };
+
+  const handleSaveResource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resTitle.trim() || !resDownloadUrl.trim()) {
+      alert('Please provide resource title and download link URL.');
+      return;
+    }
+
+    setIsSavingResource(true);
+
+    const resourceData: StudyResource = {
+      id: editingResource ? editingResource.id : `res-${Date.now()}`,
+      title: resTitle.trim(),
+      titleSi: resTitleSi.trim() || undefined,
+      category: resCategory,
+      grade: resGrade,
+      subject: resSubject.trim() || 'General',
+      year: resYear.trim() || undefined,
+      term: resTerm.trim() || undefined,
+      medium: resMedium,
+      downloadUrl: resDownloadUrl.trim(),
+      fileType: resFileType.trim() || 'PDF Document',
+      fileSize: resFileSize.trim() || '1.5 MB',
+      description: resDescription.trim() || undefined,
+      downloadsCount: editingResource ? editingResource.downloadsCount : 0,
+      isFeatured: resIsFeatured,
+      createdAt: editingResource ? editingResource.createdAt : new Date().toISOString(),
+    };
+
+    let res;
+    if (editingResource) {
+      res = await updateStudyResource(resourceData);
+    } else {
+      res = await addStudyResource(resourceData);
+    }
+
+    setIsSavingResource(false);
+
+    if (res.success) {
+      loadData();
+      setIsResourceModalOpen(false);
+      setActionFeedbackMsg(
+        editingResource
+          ? `✓ Resource "${resourceData.title}" updated successfully!`
+          : `✓ Resource "${resourceData.title}" published & synced to cloud!`
+      );
+      setTimeout(() => setActionFeedbackMsg(null), 4500);
+    } else {
+      alert(`Failed to save resource: ${res.error || 'Unknown error'}`);
+    }
+  };
+
+  const handleDeleteResource = async (id: string, title: string) => {
+    if (confirm(`Are you sure you want to delete "${title}" from study resources?`)) {
+      await deleteStudyResource(id);
+      loadData();
+      setActionFeedbackMsg(`✓ Deleted "${title}".`);
+      setTimeout(() => setActionFeedbackMsg(null), 3500);
     }
   };
 
@@ -1247,6 +1375,18 @@ export default function AdminPage() {
           >
             <ShoppingBagIcon className="w-4 h-4" />
             <span>Products ({products.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('resources')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'resources'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/25 font-black'
+                : 'text-purple-400 hover:text-white hover:bg-purple-500/10 border border-purple-500/20'
+            }`}
+          >
+            <BookOpenIcon className="w-4 h-4" />
+            <span>Free Study Hub ({studyResources.length})</span>
           </button>
 
           <button
@@ -2734,6 +2874,226 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* TAB: FREE STUDY & KIDS RESOURCES MANAGER */}
+        {activeTab === 'resources' && (
+          <div className="space-y-6">
+            {/* Header & Controls */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-purple-500/30 rounded-3xl p-6 shadow-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20 shadow-md">
+                  <BookOpenIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white">Free Study & Kids Resources Manager</h3>
+                  <p className="text-xs text-slate-400">
+                    Publish free term tests, O/L & A/L notes, and kids coloring sheets to drive organic traffic from school WhatsApp groups.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <Link
+                  href="/resources"
+                  target="_blank"
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5"
+                >
+                  <span>View Public Hub ↗</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => openAddResourceModal()}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-lg shadow-purple-600/25 transition flex items-center gap-1.5 transform active:scale-95"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  <span>+ Add New Resource</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Metrics Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-500">Total Resources</span>
+                <p className="text-xl font-black text-white font-mono mt-0.5">{studyResources.length}</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-purple-400">Total Downloads</span>
+                <p className="text-xl font-black text-purple-400 font-mono mt-0.5">
+                  {studyResources.reduce((s, r) => s + (r.downloadsCount || 0), 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-cyan-400">Term Test Papers</span>
+                <p className="text-xl font-black text-cyan-400 font-mono mt-0.5">
+                  {studyResources.filter((r) => r.category === 'term_test').length}
+                </p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-amber-400">Short Notes</span>
+                <p className="text-xl font-black text-amber-400 font-mono mt-0.5">
+                  {studyResources.filter((r) => r.category === 'short_notes').length}
+                </p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-emerald-400">Kids Coloring Sheets</span>
+                <p className="text-xl font-black text-emerald-400 font-mono mt-0.5">
+                  {studyResources.filter((r) => r.category === 'kids_sheets').length}
+                </p>
+              </div>
+            </div>
+
+            {/* Filters Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                {[
+                  { id: 'all', label: 'All Resources', count: studyResources.length },
+                  { id: 'term_test', label: 'Term Tests', count: studyResources.filter((r) => r.category === 'term_test').length },
+                  { id: 'short_notes', label: 'Short Notes', count: studyResources.filter((r) => r.category === 'short_notes').length },
+                  { id: 'past_papers', label: 'Past Papers', count: studyResources.filter((r) => r.category === 'past_papers').length },
+                  { id: 'kids_sheets', label: 'Kids Sheets', count: studyResources.filter((r) => r.category === 'kids_sheets').length },
+                ].map((pill) => (
+                  <button
+                    key={pill.id}
+                    onClick={() => setResourceCategoryFilter(pill.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
+                      resourceCategoryFilter === pill.id
+                        ? 'bg-purple-600 text-white font-black shadow-md'
+                        : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                    }`}
+                  >
+                    <span>{pill.label}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
+                      {pill.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-72">
+                <SearchIcon className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={resourceSearch}
+                  onChange={(e) => setResourceSearch(e.target.value)}
+                  placeholder="Search resources by title, grade, subject..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            {/* Resources List Grid */}
+            {(() => {
+              const filtered = studyResources.filter((r) => {
+                if (resourceCategoryFilter !== 'all' && r.category !== resourceCategoryFilter) return false;
+                if (!resourceSearch.trim()) return true;
+                const q = resourceSearch.toLowerCase();
+                return (
+                  r.title.toLowerCase().includes(q) ||
+                  (r.titleSi && r.titleSi.toLowerCase().includes(q)) ||
+                  r.subject.toLowerCase().includes(q) ||
+                  r.grade.toLowerCase().includes(q) ||
+                  (r.year && r.year.includes(q))
+                );
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-slate-800 space-y-3">
+                    <BookOpenIcon className="w-10 h-10 mx-auto text-slate-600" />
+                    <p className="text-sm font-bold text-slate-400">No resources found</p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Click &ldquo;+ Add New Resource&rdquo; above to upload term test papers, short notes, or coloring sheets.
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filtered.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition flex flex-col justify-between shadow-lg space-y-3"
+                    >
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                              {item.grade}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                              {item.subject}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-purple-400 font-bold">
+                            📥 {item.downloadsCount || 0} downloads
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="text-xs font-bold text-white leading-snug line-clamp-2" title={item.title}>
+                            {item.title}
+                          </h4>
+                          {item.titleSi && (
+                            <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">
+                              {item.titleSi}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="text-[11px] text-slate-500 flex items-center justify-between">
+                          <span>{item.fileType || 'PDF'} • {item.fileSize || '1.5 MB'}</span>
+                          {item.year && <span>Year: {item.year}</span>}
+                        </div>
+
+                        <a
+                          href={item.downloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-mono text-cyan-400 hover:underline truncate block"
+                          title={item.downloadUrl}
+                        >
+                          🔗 {item.downloadUrl}
+                        </a>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openAddResourceModal(item)}
+                            className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-bold transition"
+                          >
+                            Edit
+                          </button>
+                          <a
+                            href={item.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
+                          >
+                            Test Link ↗
+                          </a>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteResource(item.id, item.title)}
+                          className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition"
+                          title="Delete Resource"
+                        >
+                          <Trash2Icon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {/* TAB 4: AI PRODUCT CREATOR FROM PHOTO */}
         {activeTab === 'ai_add' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -3902,6 +4262,252 @@ export default function AdminPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD / EDIT STUDY RESOURCE MODAL */}
+      {isResourceModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in overflow-y-auto"
+          onClick={() => setIsResourceModalOpen(false)}
+        >
+          <div
+            className="bg-slate-900 border border-purple-500/30 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 animate-in zoom-in-95 text-white my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center shadow-md">
+                  <BookOpenIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">
+                    {editingResource ? 'Edit Study Resource' : 'Add New Study Resource'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Free term tests, short notes, past papers, or kids coloring sheets
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsResourceModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveResource} className="space-y-4">
+              {/* Title & Sinhala Title */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 block">
+                  Resource Title (English / Main): <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={resTitle}
+                  onChange={(e) => setResTitle(e.target.value)}
+                  placeholder="e.g. 2024 Grade 10 Science 2nd Term Paper"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 block">
+                  Sinhala Title / Description (Optional):
+                </label>
+                <input
+                  type="text"
+                  value={resTitleSi}
+                  onChange={(e) => setResTitleSi(e.target.value)}
+                  placeholder="e.g. 2024 10 ශ්‍රේණිය විද්‍යාව 2 වන වාර ප්‍රශ්න පත්‍රය"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* Category & Grade */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">Category:</label>
+                  <select
+                    value={resCategory}
+                    onChange={(e) => setResCategory(e.target.value as StudyResourceCategory)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="term_test">Grade 6-11 Term Test (වාර විභාග)</option>
+                    <option value="short_notes">A/L & O/L Short Notes (කෙටි සටහන්)</option>
+                    <option value="past_papers">O/L & A/L Past Papers (පසුගිය විභාග)</option>
+                    <option value="kids_sheets">Kids Coloring / Art Sheets (රූප කොළ)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">Grade / Level:</label>
+                  <select
+                    value={resGrade}
+                    onChange={(e) => setResGrade(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="Grade 6">Grade 6</option>
+                    <option value="Grade 7">Grade 7</option>
+                    <option value="Grade 8">Grade 8</option>
+                    <option value="Grade 9">Grade 9</option>
+                    <option value="Grade 10">Grade 10</option>
+                    <option value="Grade 11 / O/L">Grade 11 / O/L</option>
+                    <option value="A/L">A/L (Advanced Level)</option>
+                    <option value="Primary / Kids">Primary / Kids (පෙර පාසල් & 1-5)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Subject, Year, Term */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">Subject:</label>
+                  <input
+                    type="text"
+                    value={resSubject}
+                    onChange={(e) => setResSubject(e.target.value)}
+                    placeholder="e.g. Science"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">Year:</label>
+                  <input
+                    type="text"
+                    value={resYear}
+                    onChange={(e) => setResYear(e.target.value)}
+                    placeholder="e.g. 2024"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">Term / Exam:</label>
+                  <input
+                    type="text"
+                    value={resTerm}
+                    onChange={(e) => setResTerm(e.target.value)}
+                    placeholder="e.g. 2nd Term"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Medium & File Info */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">Medium:</label>
+                  <select
+                    value={resMedium}
+                    onChange={(e) => setResMedium(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="sinhala">සිංහල (Sinhala)</option>
+                    <option value="english">English</option>
+                    <option value="tamil">Tamil</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">File Type:</label>
+                  <input
+                    type="text"
+                    value={resFileType}
+                    onChange={(e) => setResFileType(e.target.value)}
+                    placeholder="PDF Document"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">File Size:</label>
+                  <input
+                    type="text"
+                    value={resFileSize}
+                    onChange={(e) => setResFileSize(e.target.value)}
+                    placeholder="e.g. 1.8 MB"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Download URL */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 block">
+                  Download Link (Google Drive / Direct PDF URL): <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={resDownloadUrl}
+                  onChange={(e) => setResDownloadUrl(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/... or direct PDF link"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-cyan-400 placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                />
+                <p className="text-[10px] text-slate-500">
+                  Tip: Upload paper PDF to Google Drive, set sharing to &ldquo;Anyone with link can view&rdquo;, and paste here.
+                </p>
+              </div>
+
+              {/* Description & Featured */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 block">
+                  Exam Notes / Extra Instructions (Optional):
+                </label>
+                <textarea
+                  rows={2}
+                  value={resDescription}
+                  onChange={(e) => setResDescription(e.target.value)}
+                  placeholder="e.g. Includes Part I & II with official marking scheme."
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="res_featured"
+                  checked={resIsFeatured}
+                  onChange={(e) => setResIsFeatured(e.target.checked)}
+                  className="accent-purple-500 w-4 h-4 rounded cursor-pointer"
+                />
+                <label htmlFor="res_featured" className="text-xs font-semibold text-slate-300 cursor-pointer">
+                  Mark as Popular / Featured Resource (Puts at top with ⭐ badge)
+                </label>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsResourceModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingResource}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs transition shadow-lg shadow-purple-600/25 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSavingResource ? (
+                    <span>Publishing...</span>
+                  ) : (
+                    <>
+                      <CheckIcon className="w-4 h-4" />
+                      <span>{editingResource ? 'Update Resource' : 'Publish Resource'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

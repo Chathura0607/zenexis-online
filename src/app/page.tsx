@@ -377,6 +377,22 @@ export default function HomePage() {
                         </span>
                       </Link>
 
+                      <Link
+                        href="/resources"
+                        className="p-2.5 bg-slate-50 dark:bg-slate-950/60 hover:bg-purple-500/10 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between transition group"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-base">📚</span>
+                          <div>
+                            <h4 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-purple-400">Free Study Papers & Kids Sheets</h4>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">6-11 Term tests, O/L notes, coloring sheets</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-600 text-white rounded">
+                          100% Free
+                        </span>
+                      </Link>
+
                       <button
                         onClick={() => {
                           setActiveCategory('computer_accessories');
@@ -441,6 +457,30 @@ export default function HomePage() {
               className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs rounded-xl shadow transition transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0"
             >
               <span>Upload List</span>
+              <span>➔</span>
+            </Link>
+          </div>
+        </section>
+
+        {/* FREE STUDY & KIDS HUB PROMO STRIP */}
+        <section className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-2.5 relative z-20">
+          <div className="relative rounded-2xl bg-gradient-to-r from-purple-500/15 via-indigo-500/10 to-purple-600/15 border border-purple-500/30 px-4 py-2.5 backdrop-blur-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2.5">
+            <div className="flex items-center gap-3 text-center sm:text-left">
+              <span className="text-lg shrink-0">📚</span>
+              <div>
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  Zenexis Free Learning Hub: <strong className="text-purple-600 dark:text-purple-400">100% Free</strong> Term Papers, O/L & A/L Short Notes & Kids Coloring Sheets!
+                </span>
+                <span className="hidden md:inline text-xs text-slate-500 dark:text-slate-400 ml-2">
+                  Grade 6-11 past papers with answers, printable preschool sheets & revision guides.
+                </span>
+              </div>
+            </div>
+            <Link
+              href="/resources"
+              className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow transition transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0"
+            >
+              <span>Explore Free Hub</span>
               <span>➔</span>
             </Link>
           </div>

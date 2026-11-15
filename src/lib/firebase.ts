@@ -12,7 +12,7 @@
  * 5. Missing POS Images: When POS products don't have images, Zenexis Online automatically applies category fallback banners.
  */
 
-import { Product, Order, SchoolListRequest, ProductCategory } from '@/types';
+import { Product, Order, SchoolListRequest, ProductCategory, StudyResource } from '@/types';
 import { getCategoryFallbackImage } from './constants';
 
 export interface FirebaseConfig {
@@ -682,4 +682,152 @@ export async function testFirestoreConnection(): Promise<{
     message: `Connected successfully! Found ${res.products.length} products in Firestore collection.`,
     count: res.products.length,
   };
+}
+
+/**
+ * Save study resource into 'study_resources' collection
+ */
+export async function saveStudyResourceToFirestore(
+  resource: StudyResource
+): Promise<{ success: boolean; error?: string }> {
+  const config = getFirebaseConfig();
+  if (!config || !config.projectId || !config.apiKey) {
+    return { success: false, error: 'Firebase config missing' };
+  }
+
+  try {
+    const fields = toFirestoreFields({
+      id: resource.id,
+      title: resource.title,
+      titleSi: resource.titleSi || '',
+      category: resource.category,
+      grade: resource.grade,
+      subject: resource.subject,
+      year: resource.year || '',
+      term: resource.term || '',
+      medium: resource.medium || 'sinhala',
+      downloadUrl: resource.downloadUrl,
+      thumbnail: resource.thumbnail || '',
+      fileType: resource.fileType || 'PDF Document',
+      fileSize: resource.fileSize || '',
+      downloadsCount: resource.downloadsCount || 0,
+      isFeatured: Boolean(resource.isFeatured),
+      description: resource.description || '',
+      createdAt: resource.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+      config.projectId
+    )}/databases/(default)/documents/study_resources/${encodeURIComponent(
+      resource.id
+    )}?key=${encodeURIComponent(config.apiKey)}`;
+
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      return { success: false, error: errData.error?.message || `HTTP ${res.status}` };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message };
+  }
+}
+
+/**
+ * Fetch all study resources from Firestore 'study_resources' collection
+ */
+export async function fetchStudyResourcesFromFirestore(): Promise<{
+  success: boolean;
+  resources: StudyResource[];
+  error?: string;
+}> {
+  const config = getFirebaseConfig();
+  if (!config || !config.projectId || !config.apiKey) {
+    return { success: false, resources: [], error: 'Firebase config missing' };
+  }
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+      config.projectId
+    )}/databases/(default)/documents/study_resources?pageSize=200&key=${encodeURIComponent(
+      config.apiKey
+    )}`;
+
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, resources: [], error: err.error?.message || `HTTP ${res.status}` };
+    }
+
+    const data = await res.json();
+    const documents = data.documents || [];
+
+    const resources: StudyResource[] = documents.map((doc: any) => {
+      const { id, data: docData } = parseFirestoreDoc(doc);
+      return {
+        id: docData.id || id,
+        title: docData.title || 'Study Resource',
+        titleSi: docData.titleSi,
+        category: docData.category || 'term_test',
+        grade: docData.grade || 'Grade 10',
+        subject: docData.subject || 'General',
+        year: docData.year,
+        term: docData.term,
+        medium: docData.medium || 'sinhala',
+        downloadUrl: docData.downloadUrl || '#',
+        thumbnail: docData.thumbnail,
+        fileType: docData.fileType || 'PDF Document',
+        fileSize: docData.fileSize || '1.5 MB',
+        downloadsCount: Number(docData.downloadsCount || 0),
+        isFeatured: Boolean(docData.isFeatured),
+        description: docData.description,
+        createdAt: docData.createdAt || new Date().toISOString(),
+      };
+    });
+
+    resources.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return { success: true, resources };
+  } catch (err: any) {
+    return { success: false, resources: [], error: err?.message };
+  }
+}
+
+/**
+ * Delete a study resource from Firestore
+ */
+export async function deleteStudyResourceFromFirestore(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  const config = getFirebaseConfig();
+  if (!config || !config.projectId || !config.apiKey) {
+    return { success: false, error: 'Firebase config missing' };
+  }
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+      config.projectId
+    )}/databases/(default)/documents/study_resources/${encodeURIComponent(
+      id
+    )}?key=${encodeURIComponent(config.apiKey)}`;
+
+    const res = await fetch(url, { method: 'DELETE' });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      return { success: false, error: errData.error?.message || `HTTP ${res.status}` };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message };
+  }
 }

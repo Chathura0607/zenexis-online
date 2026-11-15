@@ -150,6 +150,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2.5">
+            {/* Free Study Hub & Kids Sheets Link */}
+            <Link
+              href="/resources"
+              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-xs font-semibold transition"
+            >
+              <span>📚</span>
+              <span>Free Papers & Notes</span>
+              <span className="text-[9px] px-1.5 py-0.2 bg-purple-500 text-white rounded-full font-bold">
+                FREE
+              </span>
+            </Link>
+
             {/* School Season Special Link */}
             <Link
               href="/school-season"

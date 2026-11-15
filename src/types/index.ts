@@ -146,3 +146,29 @@ export interface CustomerProfile {
   createdAt: string;
 }
 
+export type StudyResourceCategory =
+  | 'term_test'
+  | 'past_papers'
+  | 'short_notes'
+  | 'kids_sheets';
+
+export interface StudyResource {
+  id: string;
+  title: string;
+  titleSi?: string;
+  category: StudyResourceCategory;
+  grade: string; // e.g. 'Grade 6', 'Grade 10', 'Grade 11 / O/L', 'A/L', 'Primary / Kids'
+  subject: string; // e.g. 'Science', 'Mathematics', 'Sinhala', 'English', 'Coloring & Art'
+  year?: string; // e.g. '2024', '2023'
+  term?: string; // e.g. '1st Term', '2nd Term', '3rd Term'
+  medium?: 'sinhala' | 'english' | 'tamil';
+  downloadUrl: string; // Direct PDF or Google Drive URL
+  thumbnail?: string; // Optional cover / preview image
+  fileType?: string; // e.g. 'PDF Document', 'Image Sheet'
+  fileSize?: string; // e.g. '1.4 MB', '850 KB'
+  downloadsCount: number;
+  isFeatured?: boolean;
+  description?: string;
+  createdAt: string;
+}
+

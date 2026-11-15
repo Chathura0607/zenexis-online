@@ -1,4 +1,4 @@
-import { Product, Order, SchoolListRequest, AppNotification, CartItem, CustomerProfile, ProductReview } from '@/types';
+import { Product, Order, SchoolListRequest, AppNotification, CartItem, CustomerProfile, ProductReview, StudyResource } from '@/types';
 import { INITIAL_PRODUCTS, INITIAL_NOTIFICATIONS, SHOP_CONFIG } from './constants';
 import {
   saveProductToFirestore,
@@ -8,6 +8,9 @@ import {
   fetchProductsFromFirestore,
   fetchOrdersFromFirestore,
   fetchSchoolRequestsFromFirestore,
+  saveStudyResourceToFirestore,
+  fetchStudyResourcesFromFirestore,
+  deleteStudyResourceFromFirestore,
   isFirebaseConnected,
 } from './firebase';
 import { compressImageToDataUrl } from './imageUtils';
@@ -23,6 +26,7 @@ const KEYS = {
   REVIEWS: 'zenexis_reviews_v1',
   WISHLIST: 'zenexis_wishlist_v1',
   RECENTLY_VIEWED: 'zenexis_recently_viewed_v1',
+  STUDY_RESOURCES: 'zenexis_study_resources_v1',
 };
 
 // Safe client-side check
@@ -706,4 +710,280 @@ export const addProductReview = (
   }
 
   return newReview;
+};
+
+// --- STUDY & KIDS RESOURCES (Lead Magnet Hub) ---
+
+export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
+  {
+    id: 'res-term-gr10-sci-2024',
+    title: '2024 Grade 10 Science 2nd Term Paper (Southern Province with Answers)',
+    titleSi: '2024 10 ශ්‍රේණිය විද්‍යාව 2 වන වාර ප්‍රශ්න පත්‍රය (දකුණු පළාත් පිළිතුරු සමග)',
+    category: 'term_test',
+    grade: 'Grade 10',
+    subject: 'Science',
+    year: '2024',
+    term: '2nd Term',
+    medium: 'sinhala',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Document',
+    fileSize: '1.8 MB',
+    downloadsCount: 342,
+    isFeatured: true,
+    description: 'Southern Province Department of Education 2024 official 2nd term paper with full marking scheme.',
+    createdAt: '2024-10-15T08:00:00.000Z',
+  },
+  {
+    id: 'res-term-gr11-maths-2024',
+    title: '2024 Grade 11 Mathematics 3rd Term Model Paper & Step-by-Step Solutions',
+    titleSi: '2024 11 ශ්‍රේණිය ගණිතය 3 වන වාර ආදර්ශ ප්‍රශ්න පත්‍රය සහ පියවරෙන් පියවර විසඳුම්',
+    category: 'term_test',
+    grade: 'Grade 11 / O/L',
+    subject: 'Mathematics',
+    year: '2024',
+    term: '3rd Term',
+    medium: 'sinhala',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Document',
+    fileSize: '2.4 MB',
+    downloadsCount: 489,
+    isFeatured: true,
+    description: 'Essential model exam paper for Grade 11 students preparing for 3rd term evaluation.',
+    createdAt: '2024-10-20T08:00:00.000Z',
+  },
+  {
+    id: 'res-ol-hist-notes-2024',
+    title: 'G.C.E. O/L History Fast Revision Short Notes & Map Points (10-11 Complete)',
+    titleSi: 'සාමාන්‍ය පෙළ ඉතිහාසය සියලුම පාඩම් කෙටි සටහන් සහ අනිවාර්ය සිතියම් ලකුණු කිරීම්',
+    category: 'short_notes',
+    grade: 'Grade 11 / O/L',
+    subject: 'History',
+    year: '2024',
+    medium: 'sinhala',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Document',
+    fileSize: '3.1 MB',
+    downloadsCount: 715,
+    isFeatured: true,
+    description: 'Full syllabus quick summary covering all kingdoms, treaties, and compulsory Sri Lanka & world maps.',
+    createdAt: '2024-09-10T08:00:00.000Z',
+  },
+  {
+    id: 'res-ol-sci-formulas-2024',
+    title: 'G.C.E. O/L Science Physics Formulas, Chemistry Units & Tables Sheet',
+    titleSi: 'සා.පෙළ විද්‍යාව භෞතික විද්‍යා සූත්‍ර, රසායන විද්‍යා මූලද්‍රව්‍ය & ඒකක සාරාංශය',
+    category: 'short_notes',
+    grade: 'Grade 11 / O/L',
+    subject: 'Science',
+    year: '2024',
+    medium: 'sinhala',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Document',
+    fileSize: '1.2 MB',
+    downloadsCount: 520,
+    isFeatured: true,
+    description: 'Quick reference sheet for formulas, SI units, and chemical activity series.',
+    createdAt: '2024-09-12T08:00:00.000Z',
+  },
+  {
+    id: 'res-al-comb-maths-notes',
+    title: 'G.C.E. A/L Combined Maths Trigonometry & Calculus Quick Revision Formula Book',
+    titleSi: 'උසස් පෙළ සංයුක්ත ගණිතය ත්‍රිකෝණමිතිය, කලනය සහ දෛශික සම්පූර්ණ සූත්‍ර අත්පොත',
+    category: 'short_notes',
+    grade: 'A/L',
+    subject: 'Combined Mathematics',
+    year: '2024',
+    medium: 'sinhala',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Document',
+    fileSize: '2.8 MB',
+    downloadsCount: 640,
+    isFeatured: true,
+    description: 'Concise formula handbook for quick memory review before exams.',
+    createdAt: '2024-08-25T08:00:00.000Z',
+  },
+  {
+    id: 'res-ol-eng-past-2023',
+    title: 'G.C.E. O/L English Past Paper 2023 (Part I & II with Official Answer Scheme)',
+    titleSi: 'සා.පෙළ ඉංග්‍රීසි 2023 පසුගිය විභාග ප්‍රශ්න පත්‍රය (ලකුණු දීමේ පටිපාටිය සමග)',
+    category: 'past_papers',
+    grade: 'Grade 11 / O/L',
+    subject: 'English',
+    year: '2023',
+    medium: 'english',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Document',
+    fileSize: '1.9 MB',
+    downloadsCount: 430,
+    isFeatured: false,
+    description: 'Official Department of Examinations paper with answers for essay, reading & grammar.',
+    createdAt: '2024-07-15T08:00:00.000Z',
+  },
+  {
+    id: 'res-kids-sinhala-hodiya',
+    title: 'Kids Sinhala Hodiya & English Alphabet Tracing Activity Worksheets',
+    titleSi: 'පෙර පාසල් & ප්‍රාථමික දරුවන්ට සිංහල හෝඩිය සහ ඉංග්‍රීසි අකුරු හුරු කරවන රූප කොළ',
+    category: 'kids_sheets',
+    grade: 'Primary / Kids',
+    subject: 'Sinhala & English Tracing',
+    medium: 'sinhala',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Activity Pack',
+    fileSize: '4.2 MB',
+    downloadsCount: 890,
+    isFeatured: true,
+    description: 'Fun printable dot-tracing handwriting sheets designed for preschool and Grade 1-2 kids.',
+    createdAt: '2024-06-10T08:00:00.000Z',
+  },
+  {
+    id: 'res-kids-coloring-pack-20',
+    title: 'Cute Animals, Vehicles & Cartoon Coloring Book (20 Printable Picture Sheets)',
+    titleSi: 'පොඩිත්තන්ට පාට කිරීමට සතුන් සහ කාටූන් ලස්සන රූප කොළ 20 ක සම්පූර්ණ පැකේජය',
+    category: 'kids_sheets',
+    grade: 'Primary / Kids',
+    subject: 'Coloring & Art',
+    medium: 'sinhala',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Coloring Book',
+    fileSize: '5.5 MB',
+    downloadsCount: 1120,
+    isFeatured: true,
+    description: 'Clean high-resolution coloring sheets ready to print on A4 papers.',
+    createdAt: '2024-06-15T08:00:00.000Z',
+  },
+  {
+    id: 'res-term-gr8-eng-2024',
+    title: '2024 Grade 8 English 2nd Term Paper - Southern Province Evaluation',
+    titleSi: '2024 8 ශ්‍රේණිය ඉංග්‍රීසි භාෂාව 2 වන වාර ප්‍රශ්න පත්‍රය (දකුණු පළාත)',
+    category: 'term_test',
+    grade: 'Grade 8',
+    subject: 'English',
+    year: '2024',
+    term: '2nd Term',
+    medium: 'english',
+    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    fileType: 'PDF Document',
+    fileSize: '1.4 MB',
+    downloadsCount: 260,
+    isFeatured: false,
+    description: 'Southern Province Grade 8 2nd term English paper with reading comprehension & writing tasks.',
+    createdAt: '2024-10-18T08:00:00.000Z',
+  },
+];
+
+export const getStoredResources = (): StudyResource[] => {
+  if (!isClient) return INITIAL_STUDY_RESOURCES;
+  try {
+    const data = localStorage.getItem(KEYS.STUDY_RESOURCES);
+    if (!data) {
+      localStorage.setItem(KEYS.STUDY_RESOURCES, JSON.stringify(INITIAL_STUDY_RESOURCES));
+      return INITIAL_STUDY_RESOURCES;
+    }
+    return JSON.parse(data);
+  } catch {
+    return INITIAL_STUDY_RESOURCES;
+  }
+};
+
+export const saveStoredResources = (resources: StudyResource[]) => {
+  if (!isClient) return;
+  localStorage.setItem(KEYS.STUDY_RESOURCES, JSON.stringify(resources));
+  window.dispatchEvent(new Event('zenexis_resources_updated'));
+};
+
+export const addStudyResource = async (
+  resource: StudyResource
+): Promise<{ success: boolean; error?: string }> => {
+  const current = getStoredResources();
+  const updated = [resource, ...current];
+  saveStoredResources(updated);
+
+  if (isFirebaseConnected()) {
+    try {
+      const res = await saveStudyResourceToFirestore(resource);
+      if (!res.success) return { success: false, error: res.error };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  return { success: true };
+};
+
+export const updateStudyResource = async (
+  resource: StudyResource
+): Promise<{ success: boolean; error?: string }> => {
+  const current = getStoredResources();
+  const updated = current.map((r) => (r.id === resource.id ? resource : r));
+  saveStoredResources(updated);
+
+  if (isFirebaseConnected()) {
+    try {
+      const res = await saveStudyResourceToFirestore(resource);
+      if (!res.success) return { success: false, error: res.error };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  return { success: true };
+};
+
+export const deleteStudyResource = async (
+  id: string
+): Promise<{ success: boolean; error?: string }> => {
+  const current = getStoredResources();
+  const updated = current.filter((r) => r.id !== id);
+  saveStoredResources(updated);
+
+  if (isFirebaseConnected()) {
+    try {
+      const res = await deleteStudyResourceFromFirestore(id);
+      if (!res.success) return { success: false, error: res.error };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  return { success: true };
+};
+
+export const incrementResourceDownload = (id: string) => {
+  const current = getStoredResources();
+  const resIndex = current.findIndex((r) => r.id === id);
+  if (resIndex > -1) {
+    current[resIndex].downloadsCount = (current[resIndex].downloadsCount || 0) + 1;
+    saveStoredResources(current);
+    if (isFirebaseConnected()) {
+      saveStudyResourceToFirestore(current[resIndex]).catch(() => {});
+    }
+  }
+};
+
+export const syncResourcesWithFirestore = async (): Promise<{
+  success: boolean;
+  count: number;
+  error?: string;
+}> => {
+  if (!isFirebaseConnected()) {
+    return { success: false, count: 0, error: 'Firebase not connected' };
+  }
+
+  try {
+    const cloudRes = await fetchStudyResourcesFromFirestore();
+    if (cloudRes.success && cloudRes.resources.length > 0) {
+      saveStoredResources(cloudRes.resources);
+      return { success: true, count: cloudRes.resources.length };
+    } else if (cloudRes.success && cloudRes.resources.length === 0) {
+      // Pre-seed cloud with initial resources if empty
+      const local = getStoredResources();
+      for (const item of local) {
+        await saveStudyResourceToFirestore(item);
+      }
+      return { success: true, count: local.length };
+    }
+    return { success: false, count: 0, error: cloudRes.error };
+  } catch (err: any) {
+    return { success: false, count: 0, error: err?.message };
+  }
 };
