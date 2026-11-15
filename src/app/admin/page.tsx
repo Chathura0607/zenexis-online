@@ -757,6 +757,15 @@ export default function AdminPage() {
 
           <div className="flex items-center gap-2.5">
             <button
+              onClick={syncAllFromCloud}
+              disabled={isRefreshingCloud}
+              className="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs text-cyan-400 transition font-bold flex items-center gap-1.5"
+              title="Sync with Google Cloud Firestore"
+            >
+              <span className={isRefreshingCloud ? 'animate-spin inline-block' : 'inline-block'}>🔄</span>
+              <span className="hidden sm:inline">{isRefreshingCloud ? 'Syncing...' : 'Sync Cloud'}</span>
+            </button>
+            <button
               onClick={() => setActiveTab('ai_add')}
               className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition transform active:scale-95"
             >
@@ -975,11 +984,11 @@ export default function AdminPage() {
                   type="button"
                   onClick={syncAllFromCloud}
                   disabled={isRefreshingCloud}
-                  className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-xs font-bold text-slate-300 hover:text-white transition flex items-center gap-1.5 shrink-0"
+                  className="px-3.5 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition flex items-center gap-2 shrink-0 shadow-sm"
                   title="Fetch latest orders from Google Cloud Firestore"
                 >
                   <span className={isRefreshingCloud ? 'animate-spin inline-block' : 'inline-block'}>🔄</span>
-                  <span className="hidden sm:inline">{isRefreshingCloud ? 'Syncing...' : 'Sync Cloud Orders'}</span>
+                  <span>{isRefreshingCloud ? 'Syncing Cloud...' : 'Sync Cloud Orders'}</span>
                 </button>
 
                 {/* Order Search Box */}
