@@ -458,6 +458,7 @@ export async function fetchOrdersFromFirestore(): Promise<{
         scheduledPickupDate: docData.scheduledPickupDate,
         scheduledPickupTime: docData.scheduledPickupTime,
         trackingNumber: docData.trackingNumber,
+        isStockDeducted: Boolean(docData.isStockDeducted),
         createdAt: docData.createdAt || new Date().toISOString(),
         updatedAt: docData.updatedAt || new Date().toISOString(),
       };
@@ -515,6 +516,7 @@ export async function fetchSingleOrderFromFirestore(
         scheduledPickupDate: docData.scheduledPickupDate,
         scheduledPickupTime: docData.scheduledPickupTime,
         trackingNumber: docData.trackingNumber,
+        isStockDeducted: Boolean(docData.isStockDeducted),
         createdAt: docData.createdAt || new Date().toISOString(),
         updatedAt: docData.updatedAt || new Date().toISOString(),
       };

@@ -323,14 +323,71 @@ export const updateOrderStatus = (
   extra?: { scheduledPickupDate?: string; scheduledPickupTime?: string; trackingNumber?: string }
 ) => {
   const current = getStoredOrders();
+  const products = getStoredProducts();
+  let productsModified = false;
+
   const updated = current.map((ord) => {
     if (ord.id === orderId || ord.orderNumber === orderId) {
-      const updatedOrd = {
+      let isStockDeducted = ord.isStockDeducted ?? false;
+      const isApprovedOrBeyond =
+        ['approved', 'processing', 'ready_for_pickup', 'out_for_delivery', 'completed'].includes(status);
+
+      // Deduct stock when order is approved or moved to processing/completed
+      if (isApprovedOrBeyond && !isStockDeducted) {
+        ord.items.forEach((item) => {
+          const pIdx = products.findIndex(
+            (p) => p.id === item.product.id || p.name.toLowerCase() === item.product.name.toLowerCase()
+          );
+          if (pIdx > -1) {
+            const currentStock = products[pIdx].stockCount ?? 10;
+            const newStock = Math.max(0, currentStock - item.quantity);
+            products[pIdx].stockCount = newStock;
+            products[pIdx].inStock = newStock > 0;
+            productsModified = true;
+
+            // Sync updated product stock to Firestore
+            if (isFirebaseConnected()) {
+              saveProductToFirestore(products[pIdx]).catch((err) =>
+                console.warn('Firestore stock deduction sync warning:', err)
+              );
+            }
+          }
+        });
+        isStockDeducted = true;
+      }
+
+      // Restore stock if an approved order is cancelled
+      if (status === 'cancelled' && isStockDeducted) {
+        ord.items.forEach((item) => {
+          const pIdx = products.findIndex(
+            (p) => p.id === item.product.id || p.name.toLowerCase() === item.product.name.toLowerCase()
+          );
+          if (pIdx > -1) {
+            const currentStock = products[pIdx].stockCount ?? 0;
+            const newStock = currentStock + item.quantity;
+            products[pIdx].stockCount = newStock;
+            products[pIdx].inStock = newStock > 0;
+            productsModified = true;
+
+            // Sync updated product stock to Firestore
+            if (isFirebaseConnected()) {
+              saveProductToFirestore(products[pIdx]).catch((err) =>
+                console.warn('Firestore stock restoration sync warning:', err)
+              );
+            }
+          }
+        });
+        isStockDeducted = false;
+      }
+
+      const updatedOrd: Order = {
         ...ord,
         status,
+        isStockDeducted,
         ...(extra || {}),
         updatedAt: new Date().toISOString(),
       };
+
       // Sync update to Firestore
       if (isFirebaseConnected()) {
         saveOrderToFirestore(updatedOrd).catch((err) =>
@@ -341,6 +398,11 @@ export const updateOrderStatus = (
     }
     return ord;
   });
+
+  if (productsModified) {
+    saveStoredProducts(products);
+  }
+
   saveStoredOrders(updated);
 };
 

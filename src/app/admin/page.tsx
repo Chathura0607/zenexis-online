@@ -492,6 +492,17 @@ export default function AdminPage() {
 
   const handleUpdateOrderStatus = (order: Order, newStatus: OrderStatus) => {
     updateOrderStatus(order.id, newStatus);
+    loadData();
+    if (newStatus === 'approved' && !order.isStockDeducted) {
+      setActionFeedbackMsg(`✓ Order #${order.orderNumber} Approved! Product inventory stock deducted automatically.`);
+      setTimeout(() => setActionFeedbackMsg(null), 4500);
+    } else if (newStatus === 'cancelled' && order.isStockDeducted) {
+      setActionFeedbackMsg(`✓ Order #${order.orderNumber} Cancelled. Product inventory stock restored automatically.`);
+      setTimeout(() => setActionFeedbackMsg(null), 4500);
+    } else {
+      setActionFeedbackMsg(`✓ Order #${order.orderNumber} status updated to ${newStatus.replace(/_/g, ' ')}.`);
+      setTimeout(() => setActionFeedbackMsg(null), 4000);
+    }
   };
 
   const handleSetPickupSlot = (order: Order, date: string, time: string) => {
@@ -961,6 +972,21 @@ export default function AdminPage() {
 
       {/* Main Admin Area */}
       <main className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+        {/* Global Action Feedback Toast */}
+        {actionFeedbackMsg && (
+          <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+              <span className="text-base">✨</span>
+              <span>{actionFeedbackMsg}</span>
+            </div>
+            <button
+              onClick={() => setActionFeedbackMsg(null)}
+              className="text-emerald-400 hover:text-white text-xs px-2 py-1 rounded-lg"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {/* KPI Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div
@@ -1163,22 +1189,6 @@ export default function AdminPage() {
         {/* TAB 0: BUSINESS INTELLIGENCE & PROFIT ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
-            {/* Feedback Toast */}
-            {actionFeedbackMsg && (
-              <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">✨</span>
-                  <span>{actionFeedbackMsg}</span>
-                </div>
-                <button
-                  onClick={() => setActionFeedbackMsg(null)}
-                  className="text-emerald-400 hover:text-white text-xs px-2 py-1 rounded-lg"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-
             {/* Analytics Header & Timeframe Filter Bar */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/70 p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-xl">
               <div>

@@ -61,6 +61,7 @@ export interface Order {
   scheduledPickupTime?: string;
   estimatedDelivery?: string;
   trackingNumber?: string;
+  isStockDeducted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
