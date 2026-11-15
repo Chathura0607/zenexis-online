@@ -320,7 +320,14 @@ export const createOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'creat
 export const updateOrderStatus = (
   orderId: string,
   status: Order['status'],
-  extra?: { scheduledPickupDate?: string; scheduledPickupTime?: string; trackingNumber?: string }
+  extra?: {
+    scheduledPickupDate?: string;
+    scheduledPickupTime?: string;
+    trackingNumber?: string;
+    cancellationReason?: string;
+    cancelledBy?: 'admin' | 'customer';
+    cancelledAt?: string;
+  }
 ) => {
   const current = getStoredOrders();
   const products = getStoredProducts();

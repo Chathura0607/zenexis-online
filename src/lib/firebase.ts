@@ -459,6 +459,9 @@ export async function fetchOrdersFromFirestore(): Promise<{
         scheduledPickupTime: docData.scheduledPickupTime,
         trackingNumber: docData.trackingNumber,
         isStockDeducted: Boolean(docData.isStockDeducted),
+        cancellationReason: docData.cancellationReason,
+        cancelledBy: docData.cancelledBy,
+        cancelledAt: docData.cancelledAt,
         createdAt: docData.createdAt || new Date().toISOString(),
         updatedAt: docData.updatedAt || new Date().toISOString(),
       };
@@ -517,6 +520,9 @@ export async function fetchSingleOrderFromFirestore(
         scheduledPickupTime: docData.scheduledPickupTime,
         trackingNumber: docData.trackingNumber,
         isStockDeducted: Boolean(docData.isStockDeducted),
+        cancellationReason: docData.cancellationReason,
+        cancelledBy: docData.cancelledBy,
+        cancelledAt: docData.cancelledAt,
         createdAt: docData.createdAt || new Date().toISOString(),
         updatedAt: docData.updatedAt || new Date().toISOString(),
       };

@@ -14,9 +14,10 @@ import {
   PhoneIcon,
   ShieldCheckIcon,
   ArrowRightIcon,
+  XIcon,
 } from '@/components/icons';
 import { Order, OrderStatus } from '@/types';
-import { getStoredOrders, syncOrdersWithFirestore } from '@/lib/storage';
+import { getStoredOrders, syncOrdersWithFirestore, updateOrderStatus } from '@/lib/storage';
 import { fetchSingleOrderFromFirestore } from '@/lib/firebase';
 import { SHOP_CONFIG, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
 import { createWhatsAppUrl } from '@/lib/whatsapp';
@@ -30,6 +31,42 @@ function TrackOrderContent() {
   const [hasSearched, setHasSearched] = useState(false);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [isSearchingCloud, setIsSearchingCloud] = useState(false);
+
+  // Cancellation State
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('Ordered by mistake / Changed my mind');
+  const [customReason, setCustomReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelToastMsg, setCancelToastMsg] = useState('');
+
+  const handleConfirmCancel = () => {
+    if (!searchedOrder) return;
+    setIsCancelling(true);
+    const finalReason =
+      cancelReason === 'Other'
+        ? customReason.trim() || 'Customer requested cancellation'
+        : cancelReason;
+
+    updateOrderStatus(searchedOrder.id, 'cancelled', {
+      cancellationReason: finalReason,
+      cancelledBy: 'customer',
+      cancelledAt: new Date().toISOString(),
+    });
+
+    const updated: Order = {
+      ...searchedOrder,
+      status: 'cancelled',
+      cancellationReason: finalReason,
+      cancelledBy: 'customer',
+      cancelledAt: new Date().toISOString(),
+    };
+
+    setSearchedOrder(updated);
+    setIsCancelling(false);
+    setIsCancelModalOpen(false);
+    setCancelToastMsg(`Order #${searchedOrder.orderNumber} has been successfully cancelled.`);
+    setTimeout(() => setCancelToastMsg(''), 6000);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -248,7 +285,9 @@ function TrackOrderContent() {
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Current Status:</span>
                 <span
                   className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${
-                    searchedOrder.status === 'completed'
+                    searchedOrder.status === 'cancelled'
+                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                      : searchedOrder.status === 'completed'
                       ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                       : searchedOrder.status === 'ready_for_pickup' || searchedOrder.status === 'out_for_delivery'
                       ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 animate-pulse'
@@ -260,6 +299,35 @@ function TrackOrderContent() {
                 </span>
               </div>
             </div>
+
+            {/* Cancel Toast Notification */}
+            {cancelToastMsg && (
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-between">
+                <span>✕ {cancelToastMsg}</span>
+                <button onClick={() => setCancelToastMsg('')} className="text-rose-400">✕</button>
+              </div>
+            )}
+
+            {/* Cancelled Order Notice Banner */}
+            {searchedOrder.status === 'cancelled' && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-900 dark:text-rose-300 space-y-1.5 animate-in fade-in">
+                <div className="flex items-center gap-2 font-black text-sm">
+                  <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs">✕</span>
+                  <span>Order Cancelled</span>
+                </div>
+                <p className="text-xs">
+                  This order has been cancelled {searchedOrder.cancelledBy === 'customer' ? 'by you' : 'by Zenexis Store staff'}.
+                  {searchedOrder.cancellationReason && (
+                    <span className="font-semibold block mt-1">
+                      Reason: &ldquo;{searchedOrder.cancellationReason}&rdquo;
+                    </span>
+                  )}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                  If this was done in error or you would like to re-order, please chat with our team on WhatsApp (0701120945) or place a new order on our store.
+                </p>
+              </div>
+            )}
 
             {/* Stepper Timeline */}
             <div className="py-2">
@@ -465,20 +533,36 @@ function TrackOrderContent() {
               </div>
             </div>
 
-            {/* WhatsApp Actions */}
+            {/* Actions & WhatsApp Support */}
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between">
-              <a
-                href={createWhatsAppUrl(
-                  SHOP_CONFIG.whatsappNumber,
-                  `Hello Zenexis! Checking on my order #${searchedOrder.orderNumber} for ${searchedOrder.customerName}.`
+              <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                <a
+                  href={createWhatsAppUrl(
+                    SHOP_CONFIG.whatsappNumber,
+                    searchedOrder.status === 'cancelled'
+                      ? `Hello Zenexis, regarding my cancelled order #${searchedOrder.orderNumber} for ${searchedOrder.customerName}.`
+                      : `Hello Zenexis! Checking on my order #${searchedOrder.orderNumber} for ${searchedOrder.customerName}.`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                >
+                  <WhatsAppIcon className="w-4 h-4 fill-white" />
+                  <span>Ask Update on WhatsApp (0701120945)</span>
+                </a>
+
+                {/* Cancel Button if eligible */}
+                {searchedOrder.status !== 'cancelled' && ['pending', 'approved', 'processing'].includes(searchedOrder.status) && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    className="w-full sm:w-auto px-4 py-3 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-xs transition flex items-center justify-center gap-1.5"
+                  >
+                    <XIcon className="w-3.5 h-3.5" />
+                    <span>Cancel Order</span>
+                  </button>
                 )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
-              >
-                <WhatsAppIcon className="w-4 h-4 fill-white" />
-                <span>Ask Update on WhatsApp (0701120945)</span>
-              </a>
+              </div>
 
               <Link
                 href="/"
@@ -509,6 +593,107 @@ function TrackOrderContent() {
             </a>
           </div>
         ) : null}
+
+        {/* Customer Order Cancellation Modal */}
+        {isCancelModalOpen && searchedOrder && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => setIsCancelModalOpen(false)}
+          >
+            <div
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 animate-in zoom-in-95"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                    <XIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                      Cancel Order #{searchedOrder.orderNumber}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Are you sure you want to cancel this order?
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsCancelModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                  Please select your cancellation reason:
+                </label>
+                <div className="space-y-2">
+                  {[
+                    'Ordered by mistake / Changed my mind',
+                    'Need to change delivery address or phone',
+                    'Delivery time is too long',
+                    'Found an alternative product',
+                    'Other',
+                  ].map((reason) => (
+                    <label
+                      key={reason}
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
+                        cancelReason === reason
+                          ? 'bg-rose-500/10 border-rose-500/40 text-slate-900 dark:text-white font-bold'
+                          : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="cancel_reason"
+                        value={reason}
+                        checked={cancelReason === reason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        className="accent-rose-500"
+                      />
+                      <span>{reason}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {cancelReason === 'Other' && (
+                  <textarea
+                    rows={2}
+                    value={customReason}
+                    onChange={(e) => setCustomReason(e.target.value)}
+                    placeholder="Please specify your reason here..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-rose-500 resize-none"
+                  />
+                )}
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
+                ℹ️ Once cancelled, you can place a new order anytime or contact our Ambalangoda counter on WhatsApp.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsCancelModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition"
+                >
+                  Keep My Order
+                </button>
+                <button
+                  type="button"
+                  disabled={isCancelling}
+                  onClick={handleConfirmCancel}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-lg shadow-rose-500/25 disabled:opacity-50"
+                >
+                  {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

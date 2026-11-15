@@ -96,6 +96,12 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [schoolRequests, setSchoolRequests] = useState<SchoolListRequest[]>([]);
 
+  // Admin Order Cancellation State
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [adminCancelReason, setAdminCancelReason] = useState('Customer requested cancellation via call/WhatsApp');
+  const [adminCustomCancelReason, setAdminCustomCancelReason] = useState('');
+  const [isAdminCancelling, setIsAdminCancelling] = useState(false);
+
   // Search & Filters
   const [productSearch, setProductSearch] = useState('');
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
@@ -510,6 +516,27 @@ export default function AdminPage() {
       scheduledPickupDate: date,
       scheduledPickupTime: time,
     });
+  };
+
+  const handleConfirmAdminCancel = () => {
+    if (!orderToCancel) return;
+    setIsAdminCancelling(true);
+    const finalReason =
+      adminCancelReason === 'Other'
+        ? adminCustomCancelReason.trim() || 'Admin cancelled order'
+        : adminCancelReason;
+
+    updateOrderStatus(orderToCancel.id, 'cancelled', {
+      cancellationReason: finalReason,
+      cancelledBy: 'admin',
+      cancelledAt: new Date().toISOString(),
+    });
+
+    loadData();
+    setIsAdminCancelling(false);
+    setOrderToCancel(null);
+    setActionFeedbackMsg(`✓ Order #${orderToCancel.orderNumber} Cancelled. Any deducted product stock has been restored.`);
+    setTimeout(() => setActionFeedbackMsg(null), 4500);
   };
 
   const handleUpdateSchoolStatus = (
@@ -1907,6 +1934,7 @@ export default function AdminPage() {
                 { id: 'processing', label: 'Packing', count: orders.filter((o) => o.status === 'processing').length },
                 { id: 'ready_for_pickup', label: 'Ready for Pickup', count: orders.filter((o) => o.status === 'ready_for_pickup').length },
                 { id: 'completed', label: 'Completed', count: orders.filter((o) => o.status === 'completed').length },
+                { id: 'cancelled', label: 'Cancelled', count: orders.filter((o) => o.status === 'cancelled').length },
               ].map((pill) => (
                 <button
                   key={pill.id}
@@ -2216,6 +2244,33 @@ export default function AdminPage() {
                             >
                               Completed
                             </button>
+
+                            {order.status !== 'cancelled' ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOrderToCancel(order);
+                                  setAdminCancelReason('Customer requested cancellation via call/WhatsApp');
+                                  setAdminCustomCancelReason('');
+                                }}
+                                className="px-3 py-1 text-xs rounded-xl font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 transition flex items-center gap-1"
+                                title="Cancel order and return stock to inventory"
+                              >
+                                <XIcon className="w-3 h-3" />
+                                <span>Cancel</span>
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                  Cancelled ✕
+                                </span>
+                                {order.cancellationReason && (
+                                  <span className="text-[11px] text-slate-400 italic">
+                                    &ldquo;{order.cancellationReason}&rdquo; ({order.cancelledBy === 'customer' ? 'by Customer' : 'by Admin'})
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           <a
@@ -3430,6 +3485,107 @@ export default function AdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Order Cancellation Confirmation Modal */}
+      {orderToCancel && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setOrderToCancel(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                  <XIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white">
+                    Cancel Order #{orderToCancel.orderNumber}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Customer: {orderToCancel.customerName} ({orderToCancel.phone})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setOrderToCancel(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-300 block">
+                Select reason for cancellation:
+              </label>
+              <div className="space-y-2">
+                {[
+                  'Customer requested cancellation via call/WhatsApp',
+                  'Out of stock / damaged stock',
+                  'Customer unreachable / Invalid phone number',
+                  'Duplicate order',
+                  'Other',
+                ].map((reason) => (
+                  <label
+                    key={reason}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
+                      adminCancelReason === reason
+                        ? 'bg-rose-500/10 border-rose-500/40 text-white font-bold'
+                        : 'border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="admin_cancel_reason"
+                      value={reason}
+                      checked={adminCancelReason === reason}
+                      onChange={(e) => setAdminCancelReason(e.target.value)}
+                      className="accent-rose-500"
+                    />
+                    <span>{reason}</span>
+                  </label>
+                ))}
+              </div>
+
+              {adminCancelReason === 'Other' && (
+                <textarea
+                  rows={2}
+                  value={adminCustomCancelReason}
+                  onChange={(e) => setAdminCustomCancelReason(e.target.value)}
+                  placeholder="Type specific admin cancellation notes..."
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 resize-none"
+                />
+              )}
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400">
+              ℹ️ Any product stock previously deducted for this order will automatically be returned to showroom inventory.
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setOrderToCancel(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold transition"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                disabled={isAdminCancelling}
+                onClick={handleConfirmAdminCancel}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-lg shadow-rose-500/25 disabled:opacity-50"
+              >
+                {isAdminCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+              </button>
+            </div>
           </div>
         </div>
       )}

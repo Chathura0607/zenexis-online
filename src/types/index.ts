@@ -62,6 +62,9 @@ export interface Order {
   estimatedDelivery?: string;
   trackingNumber?: string;
   isStockDeducted?: boolean;
+  cancellationReason?: string;
+  cancelledBy?: 'admin' | 'customer';
+  cancelledAt?: string;
   createdAt: string;
   updatedAt: string;
 }
