@@ -80,14 +80,23 @@ export default function ResourcesPage() {
     }
   };
 
+  const getHubUrl = () => {
+    if (typeof window !== 'undefined' && window.location.origin) {
+      return `${window.location.origin}/resources`;
+    }
+    return 'https://zenexismart.com/resources';
+  };
+
   const handleShareWhatsApp = (resource: StudyResource) => {
-    const text = `📚 *Free Study Resource from Zenexis Ambalangoda:*\n\n*${resource.title}*\n${resource.titleSi ? `${resource.titleSi}\n` : ''}Grade: ${resource.grade} • Subject: ${resource.subject}\n\n👉 Download 100% Free here: https://zenexis-six.vercel.app/resources\n\n(Zenexis Online - School Books, Past Papers & Computer Accessories)`;
+    const hubUrl = getHubUrl();
+    const text = `📚 *Free Study Resource from Zenexis Ambalangoda:*\n\n*${resource.title}*\n${resource.titleSi ? `${resource.titleSi}\n` : ''}Grade: ${resource.grade} • Subject: ${resource.subject}\n\n👉 Download 100% Free here: ${hubUrl}\n\n(Zenexis Online - School Books, Past Papers & Computer Accessories)`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
 
   const handleShareEntireHub = () => {
-    const text = `🎓 *Zenexis Free Study & Kids Hub (නොමිලේ අධ්‍යාපනික සම්පත්):*\n\nGrade 6-11 Term Test Papers, O/L & A/L Short Notes සහ පොඩිත්තන්ට රූප කොළ 100% නොමිලේ Download කරගන්න!\n\n👉 Free Download Link: https://zenexis-six.vercel.app/resources\n\nZenexis Ambalangoda • Island-wide Cash on Delivery`;
+    const hubUrl = getHubUrl();
+    const text = `🎓 *Zenexis Free Study & Kids Hub (නොමිලේ අධ්‍යාපනික සම්පත්):*\n\nGrade 6-11 Term Test Papers, O/L & A/L Short Notes සහ පොඩිත්තන්ට රූප කොළ 100% නොමිලේ Download කරගන්න!\n\n👉 Free Download Link: ${hubUrl}\n\nZenexis Ambalangoda • Island-wide Cash on Delivery`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
