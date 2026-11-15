@@ -22,6 +22,8 @@ import {
   UserIcon,
   LockIcon,
   KeyIcon,
+  TrendingUpIcon,
+  BarChartIcon,
 } from '@/components/icons';
 import { Product, Order, SchoolListRequest, ProductCategory, OrderStatus } from '@/types';
 import {
@@ -81,7 +83,13 @@ export default function AdminPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<'orders' | 'school' | 'products' | 'ai_add' | 'broadcast' | 'firestore'>('orders');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'school' | 'products' | 'ai_add' | 'broadcast' | 'firestore'>('orders');
+
+  // Business Intelligence & Profit Analytics State
+  const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'all' | 'today' | '7days' | '30days'>('all');
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<'overview' | 'fast_moving' | 'low_stock' | 'unsold'>('overview');
+  const [isUpdatingStock, setIsUpdatingStock] = useState<string | null>(null);
+  const [actionFeedbackMsg, setActionFeedbackMsg] = useState<string | null>(null);
 
   // Data
   const [products, setProducts] = useState<Product[]>([]);
@@ -582,6 +590,156 @@ export default function AdminPage() {
   const pendingOrdersCount = orders.filter((o) => o.status === 'pending').length;
   const pendingSchoolCount = schoolRequests.filter((s) => s.status === 'pending_review').length;
 
+  // Business Intelligence & Profit Calculations
+  const now = new Date();
+  const analyticsFilteredOrders = orders.filter((o) => {
+    if (o.status === 'cancelled') return false;
+    if (analyticsTimeframe === 'all') return true;
+    const orderDate = new Date(o.createdAt);
+    const diffMs = now.getTime() - orderDate.getTime();
+    if (analyticsTimeframe === 'today') {
+      return orderDate.toDateString() === now.toDateString();
+    }
+    if (analyticsTimeframe === '7days') {
+      return diffMs <= 7 * 24 * 60 * 60 * 1000;
+    }
+    if (analyticsTimeframe === '30days') {
+      return diffMs <= 30 * 24 * 60 * 60 * 1000;
+    }
+    return true;
+  });
+
+  const analyticsGrossRevenue = analyticsFilteredOrders.reduce((sum, o) => sum + o.total, 0);
+  const analyticsTotalOrders = analyticsFilteredOrders.length;
+  const analyticsCompletedOrders = analyticsFilteredOrders.filter((o) => o.status === 'completed').length;
+  const analyticsPendingOrders = analyticsFilteredOrders.filter((o) => o.status === 'pending').length;
+  const analyticsAov = analyticsTotalOrders > 0 ? Math.round(analyticsGrossRevenue / analyticsTotalOrders) : 0;
+
+  // Wholesale Cost & Profit estimation
+  let analyticsEstimatedCost = 0;
+  analyticsFilteredOrders.forEach((o) => {
+    o.items.forEach((it) => {
+      const p = it.product;
+      const unitCost = p.originalPrice && p.originalPrice > p.price
+        ? Math.round(p.price * 0.72)
+        : Math.round(p.price * 0.70);
+      analyticsEstimatedCost += unitCost * it.quantity;
+    });
+  });
+  const analyticsEstimatedProfit = Math.max(0, analyticsGrossRevenue - analyticsEstimatedCost);
+  const analyticsProfitMarginPct = analyticsGrossRevenue > 0
+    ? ((analyticsEstimatedProfit / analyticsGrossRevenue) * 100).toFixed(1)
+    : '0.0';
+
+  // Fast-Moving Items aggregation across orders
+  const productSalesMap = new Map<
+    string,
+    { product: Product; unitsSold: number; totalRevenue: number; ordersCount: number }
+  >();
+  orders.forEach((o) => {
+    if (o.status === 'cancelled') return;
+    o.items.forEach((it) => {
+      const key = it.product.id || it.product.name;
+      const existing = productSalesMap.get(key) || {
+        product: it.product,
+        unitsSold: 0,
+        totalRevenue: 0,
+        ordersCount: 0,
+      };
+      existing.unitsSold += it.quantity;
+      existing.totalRevenue += it.quantity * it.product.price;
+      existing.ordersCount += 1;
+      productSalesMap.set(key, existing);
+    });
+  });
+
+  const fastMovingProducts = Array.from(productSalesMap.values()).sort(
+    (a, b) => b.unitsSold - a.unitsSold || b.totalRevenue - a.totalRevenue
+  );
+
+  // Low Stock & Out of Stock items
+  const lowStockProducts = products
+    .filter((p) => !p.inStock || p.stockCount <= 5)
+    .sort((a, b) => a.stockCount - b.stockCount);
+
+  // Unsold / Slow-Moving Items ("Wikennem nthi items")
+  const unsoldProducts = products.filter((p) => {
+    const sales = productSalesMap.get(p.id) || productSalesMap.get(p.name);
+    return !sales || sales.unitsSold === 0;
+  });
+
+  const unsoldTiedUpCapital = unsoldProducts.reduce(
+    (sum, p) => sum + p.price * (p.stockCount || 0),
+    0
+  );
+
+  // Delivery Channel Distribution
+  const codOrders = analyticsFilteredOrders.filter((o) => o.deliveryMethod !== 'store_pickup');
+  const pickupOrders = analyticsFilteredOrders.filter((o) => o.deliveryMethod === 'store_pickup');
+  const codRevenue = codOrders.reduce((sum, o) => sum + o.total, 0);
+  const pickupRevenue = pickupOrders.reduce((sum, o) => sum + o.total, 0);
+
+  // Day-to-Day 7-Day Chart Data
+  const last7DaysData = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dateStr = d.toISOString().split('T')[0];
+    const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+    const dayOrders = orders.filter((o) => o.status !== 'cancelled' && o.createdAt && o.createdAt.startsWith(dateStr));
+    const dayRev = dayOrders.reduce((sum, o) => sum + o.total, 0);
+    return {
+      date: dateStr,
+      label: dayLabel,
+      ordersCount: dayOrders.length,
+      revenue: dayRev,
+    };
+  });
+  const maxDayRevenue = Math.max(...last7DaysData.map((d) => d.revenue), 1000);
+
+  // Handlers for Restock, Clearance, Broadcast
+  const handleQuickRestock = async (product: Product, addAmount: number) => {
+    setIsUpdatingStock(product.id);
+    const newCount = Math.max(0, (product.stockCount || 0) + addAmount);
+    const updated: Product = {
+      ...product,
+      stockCount: newCount,
+      inStock: newCount > 0,
+    };
+    const res = await updateProduct(updated);
+    setIsUpdatingStock(null);
+    if (res.success) {
+      setActionFeedbackMsg(`✓ Restocked! ${product.name} now has ${newCount} units in stock.`);
+      setTimeout(() => setActionFeedbackMsg(null), 4000);
+    } else {
+      alert(`Failed to update stock: ${res.error || 'Unknown error'}`);
+    }
+  };
+
+  const handleApplyClearanceDiscount = async (product: Product, discountPct = 15) => {
+    setIsUpdatingStock(product.id);
+    const discountedPrice = Math.round(product.price * (1 - discountPct / 100));
+    const updated: Product = {
+      ...product,
+      originalPrice: product.originalPrice && product.originalPrice > product.price ? product.originalPrice : product.price,
+      price: discountedPrice,
+      tags: Array.from(new Set([...(product.tags || []), 'clearance', 'deal', 'discount'])),
+    };
+    const res = await updateProduct(updated);
+    setIsUpdatingStock(null);
+    if (res.success) {
+      setActionFeedbackMsg(`✓ Applied ${discountPct}% Clearance Sale! New price: Rs. ${discountedPrice.toLocaleString()} (was Rs. ${product.price.toLocaleString()})`);
+      setTimeout(() => setActionFeedbackMsg(null), 4000);
+    } else {
+      alert(`Failed to apply discount: ${res.error || 'Unknown error'}`);
+    }
+  };
+
+  const handlePromoteProductInBroadcast = (product: Product) => {
+    setBroadcastTitle(`🔥 Special Clearance Deal: ${product.name}`);
+    setBroadcastMessage(`Special discount offer now available at Zenexis Ambalangoda! Price: Rs. ${product.price.toLocaleString()} only. Island-wide cash on delivery available.`);
+    setActiveTab('broadcast');
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#070b14] text-white flex items-center justify-center p-4 relative overflow-hidden selection:bg-cyan-500 selection:text-slate-950">
@@ -805,7 +963,10 @@ export default function AdminPage() {
       <main className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
         {/* KPI Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="group relative p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/50 border border-slate-800 hover:border-emerald-500/40 transition-all duration-300 hover:-translate-y-0.5 shadow-xl">
+          <div
+            onClick={() => setActiveTab('analytics')}
+            className="group relative p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/50 border border-slate-800 hover:border-emerald-500/40 transition-all duration-300 hover:-translate-y-0.5 shadow-xl cursor-pointer"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-slate-400">Total Revenue</span>
               <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-black">
@@ -815,12 +976,18 @@ export default function AdminPage() {
             <div className="text-2xl font-black text-white tracking-tight">
               Rs. {totalRevenue.toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">
-              Active orders & completed sales
-            </p>
+            <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-800/60">
+              <span className="text-[11px] text-slate-500">Gross Sales</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-bold text-[10px] border border-emerald-500/30">
+                ~Rs. {analyticsEstimatedProfit.toLocaleString()} Profit (Est.)
+              </span>
+            </div>
           </div>
 
-          <div className="group relative p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/50 border border-slate-800 hover:border-cyan-500/40 transition-all duration-300 hover:-translate-y-0.5 shadow-xl">
+          <div
+            onClick={() => setActiveTab('orders')}
+            className="group relative p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/50 border border-slate-800 hover:border-cyan-500/40 transition-all duration-300 hover:-translate-y-0.5 shadow-xl cursor-pointer"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-slate-400">Customer Orders</span>
               <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
@@ -842,7 +1009,10 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <div className="group relative p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/50 border border-slate-800 hover:border-amber-500/40 transition-all duration-300 hover:-translate-y-0.5 shadow-xl">
+          <div
+            onClick={() => setActiveTab('school')}
+            className="group relative p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/50 border border-slate-800 hover:border-amber-500/40 transition-all duration-300 hover:-translate-y-0.5 shadow-xl cursor-pointer"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-slate-400">School Booklists</span>
               <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-sm">
@@ -866,15 +1036,25 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <div className="group relative p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/50 border border-slate-800 hover:border-purple-500/40 transition-all duration-300 hover:-translate-y-0.5 shadow-xl">
+          <div
+            onClick={() => setActiveTab('products')}
+            className="group relative p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/50 border border-slate-800 hover:border-purple-500/40 transition-all duration-300 hover:-translate-y-0.5 shadow-xl cursor-pointer"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-slate-400">Catalog Inventory</span>
               <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
                 <ShoppingBagIcon className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-cyan-400 tracking-tight">
-              {products.length} Items
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-black text-cyan-400 tracking-tight">
+                {products.length} Items
+              </span>
+              {lowStockProducts.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold">
+                  {lowStockProducts.length} Low
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
               {products.filter((p) => p.inStock).length} In Stock • {products.filter((p) => !p.inStock).length} Out of Stock
@@ -884,6 +1064,23 @@ export default function AdminPage() {
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 overflow-x-auto no-scrollbar shadow-inner">
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'analytics'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/25 font-black'
+                : 'text-emerald-400 hover:text-white hover:bg-emerald-500/10 border border-emerald-500/20'
+            }`}
+          >
+            <TrendingUpIcon className="w-4 h-4" />
+            <span>📊 Insights & Profit</span>
+            {lowStockProducts.length > 0 && (
+              <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-full animate-pulse">
+                {lowStockProducts.length} low
+              </span>
+            )}
+          </button>
+
           <button
             onClick={() => setActiveTab('orders')}
             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 whitespace-nowrap ${
@@ -962,6 +1159,684 @@ export default function AdminPage() {
             <span>⚡ Firestore & POS Sync</span>
           </button>
         </div>
+
+        {/* TAB 0: BUSINESS INTELLIGENCE & PROFIT ANALYTICS */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            {/* Feedback Toast */}
+            {actionFeedbackMsg && (
+              <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">✨</span>
+                  <span>{actionFeedbackMsg}</span>
+                </div>
+                <button
+                  onClick={() => setActionFeedbackMsg(null)}
+                  className="text-emerald-400 hover:text-white text-xs px-2 py-1 rounded-lg"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Analytics Header & Timeframe Filter Bar */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/70 p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-xl">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-black text-white flex items-center gap-2">
+                    <BarChartIcon className="w-5 h-5 text-emerald-400" />
+                    <span>Business Intelligence & Profit Control</span>
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                    Live Analytics
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  ව්‍යාපාරික දත්ත, ලාභ ගණනය කිරීම්, වැඩිපුර විකිණෙන භාණ්ඩ (Fast Movers) සහ නොවැටුණු තොග (Dead Stock) කළමනාකරණය
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+                {/* Timeframe Filter Pills */}
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  {[
+                    { id: 'all', label: 'All Time (සමස්ත)' },
+                    { id: 'today', label: 'Today (අද)' },
+                    { id: '7days', label: 'Last 7 Days' },
+                    { id: '30days', label: 'Last 30 Days' },
+                  ].map((tf) => (
+                    <button
+                      key={tf.id}
+                      onClick={() => setAnalyticsTimeframe(tf.id as any)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                        analyticsTimeframe === tf.id
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 hover:text-white transition flex items-center gap-1.5 shrink-0"
+                  title="Print daily financial summary"
+                >
+                  <span>🖨️</span>
+                  <span>Print Slip</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Core Financial & Velocity KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/60 border border-slate-800 hover:border-emerald-500/40 transition shadow-xl space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-semibold">Gross Sales Revenue</span>
+                  <span className="text-emerald-400 font-bold">Rs.</span>
+                </div>
+                <div className="text-2xl font-black text-white font-mono tracking-tight">
+                  Rs. {analyticsGrossRevenue.toLocaleString()}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  {analyticsTotalOrders} orders • Avg: Rs. {analyticsAov.toLocaleString()} / order
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/60 border border-slate-800 hover:border-teal-500/40 transition shadow-xl space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-semibold">Estimated Net Profit</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold text-[10px] border border-emerald-500/20">
+                    +{analyticsProfitMarginPct}% Margin
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-emerald-400 font-mono tracking-tight">
+                  Rs. {analyticsEstimatedProfit.toLocaleString()}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Estimated wholesale inventory cost ~72%
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/60 border border-slate-800 hover:border-cyan-500/40 transition shadow-xl space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-semibold">Fulfillment Velocity</span>
+                  <span className="text-cyan-400 font-bold">
+                    {analyticsTotalOrders > 0
+                      ? Math.round((analyticsCompletedOrders / analyticsTotalOrders) * 100)
+                      : 100}%
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-white tracking-tight">
+                  {analyticsCompletedOrders} Completed
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  {analyticsPendingOrders} currently pending fulfillment
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/60 border border-slate-800 hover:border-rose-500/40 transition shadow-xl space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-semibold">Inventory Alert Radar</span>
+                  {lowStockProducts.length > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 font-bold text-[10px] border border-rose-500/20">
+                      {lowStockProducts.length} Alert
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 text-[10px] font-bold">Healthy ✓</span>
+                  )}
+                </div>
+                <div className="text-2xl font-black text-white tracking-tight">
+                  {lowStockProducts.length} Low / {unsoldProducts.length} Unsold
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Rs. {unsoldTiedUpCapital.toLocaleString()} capital tied in unsold stock
+                </p>
+              </div>
+            </div>
+
+            {/* Sub-Tabs Navigation */}
+            <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setAnalyticsSubTab('overview')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+                  analyticsSubTab === 'overview'
+                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-black shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                }`}
+              >
+                <BarChartIcon className="w-3.5 h-3.5" />
+                <span>Day-to-Day Trends & Channels</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAnalyticsSubTab('fast_moving')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+                  analyticsSubTab === 'fast_moving'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-black shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                }`}
+              >
+                <span>🔥 Fast-Going Products ({fastMovingProducts.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAnalyticsSubTab('low_stock')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+                  analyticsSubTab === 'low_stock'
+                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30 font-black shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                }`}
+              >
+                <span>⚠️ Low Stock Alert ({lowStockProducts.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAnalyticsSubTab('unsold')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+                  analyticsSubTab === 'unsold'
+                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30 font-black shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                }`}
+              >
+                <span>💤 Slow-Moving / Dead Stock ({unsoldProducts.length})</span>
+              </button>
+            </div>
+
+            {/* SUB-TAB 1: DAY-TO-DAY TRENDS & CHANNELS */}
+            {analyticsSubTab === 'overview' && (
+              <div className="space-y-6">
+                {/* 7-Day Revenue Histogram */}
+                <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 shadow-xl space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-slate-800">
+                    <div>
+                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <span>📅 Day-to-Day Sales Velocity (Last 7 Days)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        දිනෙන් දින ලැබුණු orders සංඛ්‍යාව සහ මුළු ආදායම
+                      </p>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      Total 7-day sales: Rs. {last7DaysData.reduce((s, d) => s + d.revenue, 0).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Visual Bar Chart */}
+                  <div className="grid grid-cols-7 gap-2 sm:gap-4 pt-4 pb-2 items-end min-h-[220px]">
+                    {last7DaysData.map((d, idx) => {
+                      const heightPct = Math.max(12, Math.round((d.revenue / maxDayRevenue) * 100));
+                      const isToday = idx === 6;
+
+                      return (
+                        <div key={d.date} className="flex flex-col items-center gap-2 h-full justify-end group">
+                          {/* Amount */}
+                          <span className="text-[10px] font-mono text-slate-400 group-hover:text-emerald-400 transition font-bold text-center">
+                            {d.revenue > 0 ? `Rs. ${d.revenue >= 1000 ? `${(d.revenue / 1000).toFixed(1)}k` : d.revenue}` : '0'}
+                          </span>
+
+                          {/* Bar */}
+                          <div className="w-full max-w-[48px] bg-slate-950 rounded-xl h-36 flex items-end p-1 border border-slate-800/80 group-hover:border-emerald-500/40 transition">
+                            <div
+                              style={{ height: `${heightPct}%` }}
+                              className={`w-full rounded-lg transition-all duration-500 ${
+                                isToday
+                                  ? 'bg-gradient-to-t from-emerald-600 to-cyan-400 shadow-lg shadow-emerald-500/30'
+                                  : d.revenue > 0
+                                  ? 'bg-gradient-to-t from-slate-800 to-emerald-500'
+                                  : 'bg-slate-800/40'
+                              }`}
+                            />
+                          </div>
+
+                          {/* Order badge */}
+                          <span
+                            className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${
+                              d.ordersCount > 0
+                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                                : 'bg-slate-800 text-slate-500'
+                            }`}
+                          >
+                            {d.ordersCount} ord
+                          </span>
+
+                          {/* Day Label */}
+                          <span className={`text-[10px] font-bold truncate ${isToday ? 'text-emerald-400' : 'text-slate-400'}`}>
+                            {isToday ? 'Today' : d.label.split(',')[0]}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Channel Distribution & Status Breakdown Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Channel Distribution */}
+                  <div className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                      <TruckIcon className="w-4 h-4 text-cyan-400" />
+                      <span>Sales Channel Distribution</span>
+                    </h3>
+
+                    <div className="space-y-3">
+                      <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex justify-between items-center">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                            <TruckIcon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-white">Island-wide Courier (COD)</h4>
+                            <p className="text-[11px] text-slate-400">{codOrders.length} orders delivered</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-cyan-400 font-mono block">
+                            Rs. {codRevenue.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {analyticsGrossRevenue > 0
+                              ? Math.round((codRevenue / analyticsGrossRevenue) * 100)
+                              : 0}% of revenue
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex justify-between items-center">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                            <MapPinIcon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-white">Ambalangoda Showroom Pickup</h4>
+                            <p className="text-[11px] text-slate-400">{pickupOrders.length} walk-in orders</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-amber-400 font-mono block">
+                            Rs. {pickupRevenue.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {analyticsGrossRevenue > 0
+                              ? Math.round((pickupRevenue / analyticsGrossRevenue) * 100)
+                              : 0}% of revenue
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Status Funnel */}
+                  <div className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                      <ClockIcon className="w-4 h-4 text-purple-400" />
+                      <span>Live Order Status Funnel</span>
+                    </h3>
+
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Pending Approval', status: 'pending', color: 'bg-amber-400' },
+                        { label: 'Confirmed & Approved', status: 'approved', color: 'bg-blue-400' },
+                        { label: 'Packing & In Preparation', status: 'processing', color: 'bg-purple-400' },
+                        { label: 'Ready / Dispatched', status: 'out_for_delivery', color: 'bg-cyan-400' },
+                        { label: 'Successfully Completed', status: 'completed', color: 'bg-emerald-400' },
+                      ].map((st) => {
+                        const count = orders.filter((o) => o.status === st.status).length;
+                        const pct = orders.length > 0 ? (count / orders.length) * 100 : 0;
+
+                        return (
+                          <div key={st.status} className="space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <span className="text-slate-300 font-medium">{st.label}</span>
+                              <span className="text-white font-bold font-mono">{count}</span>
+                            </div>
+                            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                              <div
+                                style={{ width: `${pct}%` }}
+                                className={`h-full ${st.color} transition-all duration-300`}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-TAB 2: FAST-GOING PRODUCTS (🔥 Top Sellers) */}
+            {analyticsSubTab === 'fast_moving' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>🔥 Fast-Going Products (වැඩිපුරම විකිණෙන භාණ්ඩ)</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Customer orders අනුව වැඩිම ඉල්ලුමක් ඇති භාණ්ඩ
+                    </p>
+                  </div>
+                </div>
+
+                {fastMovingProducts.length === 0 ? (
+                  <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-slate-800 space-y-3">
+                    <SparklesIcon className="w-10 h-10 mx-auto text-slate-600" />
+                    <p className="text-sm font-bold text-slate-400">No product sales yet</p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Once orders are placed by customers, top-selling items will rank here automatically.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {fastMovingProducts.map((item, idx) => {
+                      const catalogProduct = products.find(
+                        (p) => p.id === item.product.id || p.name.toLowerCase() === item.product.name.toLowerCase()
+                      );
+                      const displayImg =
+                        item.product.image && item.product.image.length > 10
+                          ? item.product.image
+                          : catalogProduct?.image && catalogProduct.image.length > 10
+                          ? catalogProduct.image
+                          : getCategoryFallbackImage(item.product.category);
+
+                      const remainingStock = catalogProduct ? catalogProduct.stockCount : item.product.stockCount;
+
+                      return (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 transition shadow-lg flex items-center justify-between gap-4"
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {/* Rank Medal */}
+                            <div
+                              className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                                idx === 0
+                                  ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30'
+                                  : idx === 1
+                                  ? 'bg-slate-300 text-slate-950'
+                                  : idx === 2
+                                  ? 'bg-amber-700 text-white'
+                                  : 'bg-slate-800 text-slate-400'
+                              }`}
+                            >
+                              #{idx + 1}
+                            </div>
+
+                            {/* Image */}
+                            <button
+                              type="button"
+                              onClick={() => setZoomImageUrl(displayImg)}
+                              className="w-14 h-14 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shrink-0 group relative cursor-zoom-in"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={displayImg}
+                                alt={item.product.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = getCategoryFallbackImage(item.product.category);
+                                }}
+                              />
+                            </button>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-xs font-bold text-white truncate max-w-[180px] sm:max-w-xs">
+                                  {item.product.name}
+                                </h4>
+                                <span className="px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-400 text-[9px] font-bold border border-amber-500/20">
+                                  High Demand 🔥
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                Rs. {item.product.price.toLocaleString()} • {item.ordersCount} order(s)
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-lg font-bold text-[10px] border border-emerald-500/20 font-mono">
+                                  {item.unitsSold} units sold
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  Stock left: {remainingStock}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0 space-y-1.5">
+                            <span className="text-xs font-black text-amber-400 font-mono block">
+                              Rs. {item.totalRevenue.toLocaleString()}
+                            </span>
+                            {catalogProduct && (
+                              <button
+                                type="button"
+                                disabled={isUpdatingStock === catalogProduct.id}
+                                onClick={() => handleQuickRestock(catalogProduct, 10)}
+                                className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-bold transition flex items-center gap-1"
+                              >
+                                {isUpdatingStock === catalogProduct.id ? 'Saving...' : '+10 Restock'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-TAB 3: LOW STOCK ALERT (⚠️ Low Stocks) */}
+            {analyticsSubTab === 'low_stock' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>⚠️ Low Stock & Out-of-Stock Emergency Radar (ඉවරවෙන්න ළඟ බඩු)</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      තොග 5ට වඩා අඩු හෝ අවසන් වූ භාණ්ඩ — මෙතැනින්ම 1-Click එකෙන් Restock කරන්න
+                    </p>
+                  </div>
+                </div>
+
+                {lowStockProducts.length === 0 ? (
+                  <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-slate-800 space-y-3">
+                    <span className="text-3xl">🎉</span>
+                    <p className="text-sm font-bold text-emerald-400">All Inventory Levels Healthy!</p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      All products currently have plenty of stock (&gt; 5 units). No reorder alerts needed!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {lowStockProducts.map((p) => {
+                      const isOutOfStock = !p.inStock || p.stockCount === 0;
+                      const isCritical = p.stockCount <= 3;
+
+                      return (
+                        <div
+                          key={p.id}
+                          className={`p-4 rounded-2xl border transition shadow-lg flex items-center justify-between gap-4 ${
+                            isOutOfStock
+                              ? 'bg-rose-950/20 border-rose-500/40'
+                              : isCritical
+                              ? 'bg-amber-950/20 border-amber-500/40'
+                              : 'bg-slate-900/80 border-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => setZoomImageUrl(p.image)}
+                              className="w-14 h-14 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shrink-0 group relative cursor-zoom-in"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={p.image || getCategoryFallbackImage(p.category)}
+                                alt={p.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = getCategoryFallbackImage(p.category);
+                                }}
+                              />
+                            </button>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-xs font-bold text-white truncate max-w-[160px] sm:max-w-xs">
+                                  {p.name}
+                                </h4>
+                                <span
+                                  className={`px-1.5 py-0.2 rounded-md text-[9px] font-bold ${
+                                    isOutOfStock
+                                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                  }`}
+                                >
+                                  {isOutOfStock ? 'Out of Stock ❌' : `${p.stockCount} Left ⚠️`}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                Rs. {p.price.toLocaleString()} • {p.category}
+                              </p>
+                              <p className="text-[10px] text-slate-500 mt-1">
+                                Current Showroom Stock: <strong className="text-white font-mono">{p.stockCount} units</strong>
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Quick Restock Buttons */}
+                          <div className="flex flex-col gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              disabled={isUpdatingStock === p.id}
+                              onClick={() => handleQuickRestock(p, 5)}
+                              className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
+                            >
+                              {isUpdatingStock === p.id ? '...' : '+5 Stock'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isUpdatingStock === p.id}
+                              onClick={() => handleQuickRestock(p, 10)}
+                              className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
+                            >
+                              {isUpdatingStock === p.id ? '...' : '+10 Stock'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-TAB 4: SLOW-MOVING / UNSOLD INVENTORY (💤 Dead Stock) */}
+            {analyticsSubTab === 'unsold' && (
+              <div className="space-y-4">
+                {/* Capital Tied Up Banner */}
+                <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h3 className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                      <span>💤 Slow-Moving Inventory Radar (විකිණෙන්නෙ නැති භාණ්ඩ)</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      මෙම භාණ්ඩ තවම එකදු order එකකවත් විකිණී නොමැත. Clearance discount එකක් දමා ඉක්මනින් විකුණා මුදල් කරගන්න.
+                    </p>
+                  </div>
+                  <div className="text-left sm:text-right shrink-0">
+                    <span className="text-[10px] text-slate-400 block">Tied-up Stock Capital:</span>
+                    <span className="text-sm font-black text-purple-400 font-mono">
+                      Rs. {unsoldTiedUpCapital.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {unsoldProducts.length === 0 ? (
+                  <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-slate-800 space-y-3">
+                    <span className="text-3xl">🚀</span>
+                    <p className="text-sm font-bold text-emerald-400">Zero Dead Stock!</p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      All products in your catalog have generated sales. Excellent showroom turnaround!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {unsoldProducts.map((p) => {
+                      const tiedCapital = p.price * (p.stockCount || 0);
+
+                      return (
+                        <div
+                          key={p.id}
+                          className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-purple-500/40 transition shadow-lg flex items-center justify-between gap-4"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => setZoomImageUrl(p.image)}
+                              className="w-14 h-14 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shrink-0 group relative cursor-zoom-in"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={p.image || getCategoryFallbackImage(p.category)}
+                                alt={p.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = getCategoryFallbackImage(p.category);
+                                }}
+                              />
+                            </button>
+
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-white truncate max-w-[160px] sm:max-w-xs">
+                                {p.name}
+                              </h4>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                Price: Rs. {p.price.toLocaleString()} • Stock: {p.stockCount} units
+                              </p>
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 text-[10px] font-mono border border-purple-500/20">
+                                Tied capital: Rs. {tiedCapital.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              disabled={isUpdatingStock === p.id}
+                              onClick={() => handleApplyClearanceDiscount(p, 15)}
+                              className="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 rounded-xl text-[10px] font-black transition shadow-sm"
+                              title="Set 15% discount to liquidate inventory"
+                            >
+                              {isUpdatingStock === p.id ? 'Saving...' : '⚡ 15% Clearance'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handlePromoteProductInBroadcast(p)}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[10px] font-bold transition flex items-center justify-center gap-1 border border-slate-700"
+                              title="Broadcast deal to all customers"
+                            >
+                              <span>📢 Promo</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* TAB 1: ORDERS MANAGEMENT */}
         {activeTab === 'orders' && (
