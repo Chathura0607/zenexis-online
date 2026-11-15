@@ -1151,19 +1151,79 @@ export default function AdminPage() {
                           </div>
                         </div>
 
-                        {/* Order Items */}
-                        <div className="text-xs text-slate-300 space-y-1.5 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                          <p className="font-bold text-slate-400 mb-1">Items ({order.items.length}):</p>
-                          {order.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-center py-0.5 border-b border-slate-900 last:border-b-0">
-                              <span className="text-slate-200">
-                                <strong className="text-cyan-400">{item.quantity}x</strong> {item.product.name}
+                        {/* Order Items with Product Photos */}
+                        <div className="space-y-2.5 bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800/80">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                              <span>Ordered Items</span>
+                              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-mono text-[10px] font-bold border border-cyan-500/20">
+                                {order.items.reduce((sum, it) => sum + it.quantity, 0)} items
                               </span>
-                              <span className="text-slate-400 font-mono">
-                                Rs. {(item.quantity * item.product.price).toLocaleString()}
-                              </span>
-                            </div>
-                          ))}
+                            </span>
+                            <span className="text-[11px] text-slate-500">Tap photo to zoom</span>
+                          </div>
+
+                          <div className="space-y-2">
+                            {order.items.map((item, idx) => {
+                              const catalogProduct = products.find(
+                                (p) => p.id === item.product.id || p.name.toLowerCase() === item.product.name.toLowerCase()
+                              );
+                              const displayImg =
+                                item.product.image && item.product.image.length > 10
+                                  ? item.product.image
+                                  : catalogProduct?.image && catalogProduct.image.length > 10
+                                  ? catalogProduct.image
+                                  : getCategoryFallbackImage(item.product.category);
+
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/70 hover:border-slate-700 transition"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => setZoomImageUrl(displayImg)}
+                                      className="relative group shrink-0 w-13 h-13 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-cyan-500/60 transition cursor-zoom-in"
+                                      title="Click to view full photo"
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={displayImg}
+                                        alt={item.product.name}
+                                        className="w-13 h-13 sm:w-14 sm:h-14 object-cover group-hover:scale-110 transition duration-300"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src = getCategoryFallbackImage(item.product.category);
+                                        }}
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                        <CameraIcon className="w-4 h-4 text-white" />
+                                      </div>
+                                    </button>
+
+                                    <div className="min-w-0">
+                                      <h4 className="text-xs font-bold text-white truncate max-w-[200px] sm:max-w-md">
+                                        {item.product.name}
+                                      </h4>
+                                      <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                                        <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 font-black rounded-lg border border-cyan-500/20 text-[10px]">
+                                          Qty: {item.quantity}
+                                        </span>
+                                        <span className="text-slate-500">•</span>
+                                        <span>Rs. {item.product.price.toLocaleString()} each</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right shrink-0">
+                                    <span className="text-xs font-black text-cyan-400 font-mono block">
+                                      Rs. {(item.quantity * item.product.price).toLocaleString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         {/* Delivery Info */}
@@ -2343,8 +2403,8 @@ export default function AdminPage() {
           >
             <div className="w-full flex justify-between items-center pb-3 border-b border-slate-800 text-slate-300">
               <div className="flex items-center gap-2">
-                <span className="text-base font-black text-amber-400">🎒 Handwritten School List Photo</span>
-                <span className="text-[11px] text-slate-400">High-Resolution Viewer</span>
+                <span className="text-base font-black text-cyan-400">🔍 High-Resolution Photo Viewer</span>
+                <span className="text-[11px] text-slate-400">Order & Catalog Inspection</span>
               </div>
               <button
                 onClick={() => setZoomImageUrl(null)}
@@ -2359,7 +2419,7 @@ export default function AdminPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={zoomImageUrl}
-                alt="Zoomed handwritten booklist"
+                alt="Zoomed product or booklist preview"
                 className="max-w-full max-h-[70vh] object-contain rounded-xl"
               />
             </div>

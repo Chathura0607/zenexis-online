@@ -382,8 +382,8 @@ export async function saveOrderToFirestore(
         tags: item.product.tags || [],
         rating: item.product.rating || 5,
         reviewsCount: item.product.reviewsCount || 1,
-        // Only keep short image URLs, strip out multi-megabyte base64 strings from order snapshots
-        image: item.product.image && item.product.image.length < 500 ? item.product.image : '',
+        // Keep compressed image URLs or thumbnails (<90KB), strip out multi-megabyte uncompressed camera photos
+        image: item.product.image && item.product.image.length < 90000 ? item.product.image : '',
       },
     })),
   };
