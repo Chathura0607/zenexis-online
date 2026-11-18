@@ -66,15 +66,40 @@ export default function ResourcesPage() {
     };
   }, []);
 
+  const resolveDownloadUrl = (url: string) => {
+    if (!url || url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/zenexis-online')) {
+        return `/zenexis-online${url.startsWith('/') ? '' : '/'}${url}`;
+      }
+    }
+    return url;
+  };
+
   const handleDownload = (resource: StudyResource) => {
     incrementResourceDownload(resource.id);
     loadData();
     setDownloadSuccessMsg(`✓ Opening ${resource.title}. Free download initiated!`);
     setTimeout(() => setDownloadSuccessMsg(null), 4500);
 
-    // Open download in a new tab
-    if (resource.downloadUrl && resource.downloadUrl !== '#') {
-      window.open(resource.downloadUrl, '_blank', 'noopener,noreferrer');
+    const finalUrl = resolveDownloadUrl(resource.downloadUrl);
+
+    if (finalUrl && finalUrl !== '#') {
+      // Trigger instant clean download via link element to avoid browser popup blocks
+      const link = document.createElement('a');
+      link.href = finalUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      if (finalUrl.endsWith('.pdf') || finalUrl.includes('/downloads/')) {
+        const cleanName = `${resource.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+        link.download = cleanName;
+      }
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } else {
       alert('This resource download link is being updated by Zenexis staff. Please check back shortly or request via WhatsApp!');
     }

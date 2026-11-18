@@ -4444,15 +4444,15 @@ export default function AdminPage() {
                   Download Link (Google Drive / Direct PDF URL): <span className="text-rose-400">*</span>
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   required
                   value={resDownloadUrl}
                   onChange={(e) => setResDownloadUrl(e.target.value)}
-                  placeholder="https://drive.google.com/file/d/... or direct PDF link"
+                  placeholder="https://drive.google.com/file/d/... or /downloads/my-paper.pdf"
                   className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-cyan-400 placeholder-slate-500 focus:outline-none focus:border-purple-500"
                 />
-                <p className="text-[10px] text-slate-500">
-                  Tip: Upload paper PDF to Google Drive, set sharing to &ldquo;Anyone with link can view&rdquo;, and paste here.
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  💡 <strong>Google Drive Tip:</strong> Google Drive එකට PDF upload කර, Right-click → <em>Share</em> → General access එක <strong>&quot;Anyone with the link&quot;</strong> ලෙස සකසා <strong>Copy link</strong> කර මෙතනට paste කරන්න.
                 </p>
               </div>
 

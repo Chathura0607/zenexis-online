@@ -725,7 +725,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     year: '2024',
     term: '2nd Term',
     medium: 'sinhala',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/grade-10-science-2024.pdf',
     fileType: 'PDF Document',
     fileSize: '1.8 MB',
     downloadsCount: 342,
@@ -743,7 +743,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     year: '2024',
     term: '3rd Term',
     medium: 'sinhala',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/grade-11-maths-model-2024.pdf',
     fileType: 'PDF Document',
     fileSize: '2.4 MB',
     downloadsCount: 489,
@@ -760,7 +760,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     subject: 'History',
     year: '2024',
     medium: 'sinhala',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/ol-history-short-notes.pdf',
     fileType: 'PDF Document',
     fileSize: '3.1 MB',
     downloadsCount: 715,
@@ -777,7 +777,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     subject: 'Science',
     year: '2024',
     medium: 'sinhala',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/ol-science-formulas.pdf',
     fileType: 'PDF Document',
     fileSize: '1.2 MB',
     downloadsCount: 520,
@@ -794,7 +794,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     subject: 'Combined Mathematics',
     year: '2024',
     medium: 'sinhala',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/al-combined-maths-formulas.pdf',
     fileType: 'PDF Document',
     fileSize: '2.8 MB',
     downloadsCount: 640,
@@ -811,7 +811,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     subject: 'English',
     year: '2023',
     medium: 'english',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/ol-english-past-2023.pdf',
     fileType: 'PDF Document',
     fileSize: '1.9 MB',
     downloadsCount: 430,
@@ -827,7 +827,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     grade: 'Primary / Kids',
     subject: 'Sinhala & English Tracing',
     medium: 'sinhala',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/kids-sinhala-english-tracing.pdf',
     fileType: 'PDF Activity Pack',
     fileSize: '4.2 MB',
     downloadsCount: 890,
@@ -843,7 +843,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     grade: 'Primary / Kids',
     subject: 'Coloring & Art',
     medium: 'sinhala',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/kids-coloring-pack.pdf',
     fileType: 'PDF Coloring Book',
     fileSize: '5.5 MB',
     downloadsCount: 1120,
@@ -861,7 +861,7 @@ export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
     year: '2024',
     term: '2nd Term',
     medium: 'english',
-    downloadUrl: 'https://drive.google.com/drive/folders/1zenexis-study-resources',
+    downloadUrl: '/downloads/grade-8-english-2024.pdf',
     fileType: 'PDF Document',
     fileSize: '1.4 MB',
     downloadsCount: 260,
@@ -879,7 +879,27 @@ export const getStoredResources = (): StudyResource[] => {
       localStorage.setItem(KEYS.STUDY_RESOURCES, JSON.stringify(INITIAL_STUDY_RESOURCES));
       return INITIAL_STUDY_RESOURCES;
     }
-    return JSON.parse(data);
+    const parsed: StudyResource[] = JSON.parse(data);
+
+    // Auto-migrate any old broken / placeholder links to clean valid sample downloads
+    let needsUpdate = false;
+    const migrated = parsed.map((item) => {
+      if (item.downloadUrl && (item.downloadUrl.includes('1zenexis-study-resources') || item.downloadUrl === '#')) {
+        const initial = INITIAL_STUDY_RESOURCES.find((r) => r.id === item.id);
+        if (initial) {
+          needsUpdate = true;
+          return { ...item, downloadUrl: initial.downloadUrl };
+        }
+      }
+      return item;
+    });
+
+    if (needsUpdate) {
+      localStorage.setItem(KEYS.STUDY_RESOURCES, JSON.stringify(migrated));
+      return migrated;
+    }
+
+    return parsed;
   } catch {
     return INITIAL_STUDY_RESOURCES;
   }
