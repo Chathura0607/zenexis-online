@@ -3,8 +3,60 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Zenexis Online | Computer Accessories, Stationery, Mobiles & Gifts - Ambalangoda",
-  description: "Your one-stop shop for Genuine Computer Accessories, Keypad & Smartphones, Complete Stationery, and Unique Gift Items. Enjoy Island-wide Cash on Delivery and Instant WhatsApp Confirmation.",
+  metadataBase: new URL('https://zenexismart.com'),
+  title: {
+    default: 'Zenexismart (Zenexis Online) | Computer Accessories, Stationery & Past Papers Ambalangoda',
+    template: '%s | Zenexismart',
+  },
+  description:
+    'Zenexismart (Zenexis Online) - Official online showroom in Ambalangoda, Sri Lanka. Shop genuine computer accessories, school stationery, mobile phones, gift items, and download free Grade 1-13 past papers with island-wide Cash on Delivery.',
+  keywords: [
+    'Zenexismart',
+    'zenexismart.com',
+    'Zenexis',
+    'Zenexis Online',
+    'Zenexis Ambalangoda',
+    'Computer Accessories Ambalangoda',
+    'Stationery Shop Ambalangoda',
+    'Past Papers Sri Lanka',
+    'Term Test Papers',
+    'G.C.E O/L Past Papers',
+    'G.C.E A/L Past Papers',
+    'Pre-School Worksheets Sri Lanka',
+    'Cash on Delivery Sri Lanka',
+  ],
+  authors: [{ name: 'Zenexis Ambalangoda', url: 'https://zenexismart.com' }],
+  creator: 'Zenexis',
+  publisher: 'Zenexismart',
+  alternates: {
+    canonical: 'https://zenexismart.com',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://zenexismart.com',
+    siteName: 'Zenexismart',
+    title: 'Zenexismart (Zenexis Online) | Computer Accessories & School Stationery',
+    description:
+      'Official Zenexismart online store in Ambalangoda. Shop computer accessories, school booklist packages, mobile phones, and download free past papers.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Zenexismart (Zenexis Online) - Ambalangoda',
+    description:
+      'Official Zenexismart online store in Ambalangoda. Shop computer accessories, stationery, and free past papers.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export const viewport: Viewport = {
@@ -52,6 +104,53 @@ export default function RootLayout({
                 } catch (e) {}
               })();
             `,
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Store',
+              name: 'Zenexismart (Zenexis Online)',
+              alternateName: ['Zenexismart', 'Zenexis', 'Zenexis Ambalangoda', 'Zenexis Online'],
+              url: 'https://zenexismart.com',
+              logo: 'https://zenexismart.com/icons/icon-512.png',
+              image: 'https://zenexismart.com/icons/icon-512.png',
+              description:
+                'Zenexismart is the official online store for Zenexis in Ambalangoda, Sri Lanka. Offering genuine computer accessories, school stationery, mobile phones, and free school term test past papers with island-wide cash on delivery.',
+              telephone: '+94701120945',
+              priceRange: 'LKR',
+              address: {
+                '@type': 'PostalAddress',
+                streetAddress: 'Main Showroom, Near Bus Stand',
+                addressLocality: 'Ambalangoda',
+                addressRegion: 'Southern Province',
+                addressCountry: 'LK',
+              },
+              geo: {
+                '@type': 'GeoCoordinates',
+                latitude: 6.2361,
+                longitude: 80.0542,
+              },
+              openingHoursSpecification: [
+                {
+                  '@type': 'OpeningHoursSpecification',
+                  dayOfWeek: [
+                    'Monday',
+                    'Tuesday',
+                    'Wednesday',
+                    'Thursday',
+                    'Friday',
+                    'Saturday',
+                    'Sunday',
+                  ],
+                  opens: '08:00',
+                  closes: '20:30',
+                },
+              ],
+              sameAs: ['https://wa.me/94701120945'],
+            }),
           }}
         />
       </head>
