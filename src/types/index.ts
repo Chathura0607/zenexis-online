@@ -152,12 +152,49 @@ export type StudyResourceCategory =
   | 'short_notes'
   | 'kids_sheets';
 
+export type StudyCollectionId =
+  | 'preschool'
+  | 'al_past'
+  | 'ol_past'
+  | 'grade_13'
+  | 'grade_12'
+  | 'grade_11'
+  | 'grade_10'
+  | 'grade_9'
+  | 'grade_8'
+  | 'grade_7'
+  | 'grade_6'
+  | 'grade_5'
+  | 'grade_4'
+  | 'grade_3'
+  | 'grade_2'
+  | 'grade_1'
+  | 'short_notes';
+
+export interface StudyCollection {
+  id: StudyCollectionId;
+  section: 'preschool' | 'gce_past' | 'term_tests_secondary' | 'primary_scholarship' | 'notes';
+  sectionTitle: string;
+  sectionTitleSi: string;
+  title: string;
+  titleSi: string;
+  subLabel: string;
+  gradeBadge: string;
+  numberDisplay: string;
+  gradient: string;
+  badgeBg: string;
+  badgeColor: string;
+  characterType: 'preschool' | 'scholarship' | 'junior' | 'senior' | 'al' | 'ol' | 'notes';
+  description: string;
+}
+
 export interface StudyResource {
   id: string;
   title: string;
   titleSi?: string;
   category: StudyResourceCategory;
-  grade: string; // e.g. 'Grade 6', 'Grade 10', 'Grade 11 / O/L', 'A/L', 'Primary / Kids'
+  collectionId?: StudyCollectionId | string;
+  grade: string; // e.g. 'Grade 6', 'Grade 10', 'Grade 11 / O/L', 'A/L', 'Primary / Kids', 'Pre-School'
   subject: string; // e.g. 'Science', 'Mathematics', 'Sinhala', 'English', 'Coloring & Art'
   year?: string; // e.g. '2024', '2023'
   term?: string; // e.g. '1st Term', '2nd Term', '3rd Term'

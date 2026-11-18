@@ -49,7 +49,7 @@ import {
   syncResourcesWithFirestore,
 } from '@/lib/storage';
 import { analyzeProductWithAI, testGeminiApiKey } from '@/lib/gemini';
-import { SHOP_CONFIG, CATEGORIES, SCHOOL_GRADES, getProductDisplayImage, getCategoryFallbackImage } from '@/lib/constants';
+import { SHOP_CONFIG, CATEGORIES, SCHOOL_GRADES, getProductDisplayImage, getCategoryFallbackImage, STUDY_COLLECTIONS } from '@/lib/constants';
 import { createWhatsAppUrl, generateStatusUpdateWhatsAppMessage } from '@/lib/whatsapp';
 import {
   getAdminCredentials,
@@ -110,6 +110,7 @@ export default function AdminPage() {
   const [resTitle, setResTitle] = useState('');
   const [resTitleSi, setResTitleSi] = useState('');
   const [resCategory, setResCategory] = useState<StudyResourceCategory>('term_test');
+  const [resCollectionId, setResCollectionId] = useState<string>('grade_10');
   const [resGrade, setResGrade] = useState('Grade 10');
   const [resSubject, setResSubject] = useState('Science');
   const [resYear, setResYear] = useState('2024');
@@ -123,6 +124,7 @@ export default function AdminPage() {
   const [isSavingResource, setIsSavingResource] = useState(false);
   const [resourceSearch, setResourceSearch] = useState('');
   const [resourceCategoryFilter, setResourceCategoryFilter] = useState('all');
+  const [resourceCollectionFilter, setResourceCollectionFilter] = useState('all');
 
   // Admin Order Cancellation State
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
@@ -601,6 +603,7 @@ export default function AdminPage() {
       setResTitle(item.title);
       setResTitleSi(item.titleSi || '');
       setResCategory(item.category);
+      setResCollectionId(item.collectionId || 'grade_10');
       setResGrade(item.grade);
       setResSubject(item.subject);
       setResYear(item.year || '2024');
@@ -616,6 +619,7 @@ export default function AdminPage() {
       setResTitle('');
       setResTitleSi('');
       setResCategory('term_test');
+      setResCollectionId('grade_10');
       setResGrade('Grade 10');
       setResSubject('Science');
       setResYear('2024');
@@ -644,6 +648,7 @@ export default function AdminPage() {
       title: resTitle.trim(),
       titleSi: resTitleSi.trim() || undefined,
       category: resCategory,
+      collectionId: resCollectionId,
       grade: resGrade,
       subject: resSubject.trim() || 'General',
       year: resYear.trim() || undefined,
@@ -2945,29 +2950,44 @@ export default function AdminPage() {
 
             {/* Filters Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                {[
-                  { id: 'all', label: 'All Resources', count: studyResources.length },
-                  { id: 'term_test', label: 'Term Tests', count: studyResources.filter((r) => r.category === 'term_test').length },
-                  { id: 'short_notes', label: 'Short Notes', count: studyResources.filter((r) => r.category === 'short_notes').length },
-                  { id: 'past_papers', label: 'Past Papers', count: studyResources.filter((r) => r.category === 'past_papers').length },
-                  { id: 'kids_sheets', label: 'Kids Sheets', count: studyResources.filter((r) => r.category === 'kids_sheets').length },
-                ].map((pill) => (
-                  <button
-                    key={pill.id}
-                    onClick={() => setResourceCategoryFilter(pill.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
-                      resourceCategoryFilter === pill.id
-                        ? 'bg-purple-600 text-white font-black shadow-md'
-                        : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
-                    }`}
-                  >
-                    <span>{pill.label}</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
-                      {pill.count}
-                    </span>
-                  </button>
-                ))}
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={resourceCollectionFilter}
+                  onChange={(e) => setResourceCollectionFilter(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-900 border border-purple-500/30 rounded-xl text-xs text-cyan-300 font-bold focus:outline-none focus:border-purple-400"
+                >
+                  <option value="all">All Collections (සියලු එකතු)</option>
+                  {STUDY_COLLECTIONS.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.titleSi} - {c.subLabel} ({studyResources.filter((r) => r.collectionId === c.id).length})
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                  {[
+                    { id: 'all', label: 'All Types', count: studyResources.length },
+                    { id: 'term_test', label: 'Term Tests', count: studyResources.filter((r) => r.category === 'term_test').length },
+                    { id: 'short_notes', label: 'Short Notes', count: studyResources.filter((r) => r.category === 'short_notes').length },
+                    { id: 'past_papers', label: 'Past Papers', count: studyResources.filter((r) => r.category === 'past_papers').length },
+                    { id: 'kids_sheets', label: 'Kids / Pre-School', count: studyResources.filter((r) => r.category === 'kids_sheets').length },
+                  ].map((pill) => (
+                    <button
+                      key={pill.id}
+                      onClick={() => setResourceCategoryFilter(pill.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
+                        resourceCategoryFilter === pill.id
+                          ? 'bg-purple-600 text-white font-black shadow-md'
+                          : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                      }`}
+                    >
+                      <span>{pill.label}</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
+                        {pill.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="relative w-full sm:w-72">
@@ -2986,6 +3006,7 @@ export default function AdminPage() {
             {(() => {
               const filtered = studyResources.filter((r) => {
                 if (resourceCategoryFilter !== 'all' && r.category !== resourceCategoryFilter) return false;
+                if (resourceCollectionFilter !== 'all' && r.collectionId !== resourceCollectionFilter) return false;
                 if (!resourceSearch.trim()) return true;
                 const q = resourceSearch.toLowerCase();
                 return (
@@ -3001,9 +3022,9 @@ export default function AdminPage() {
                 return (
                   <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-slate-800 space-y-3">
                     <BookOpenIcon className="w-10 h-10 mx-auto text-slate-600" />
-                    <p className="text-sm font-bold text-slate-400">No resources found</p>
+                    <p className="text-sm font-bold text-slate-400">No resources in this collection yet</p>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                      Click &ldquo;+ Add New Resource&rdquo; above to upload term test papers, short notes, or coloring sheets.
+                      Click &ldquo;+ Add New Resource&rdquo; above to upload past papers, term tests, or pre-school coloring sheets.
                     </p>
                   </div>
                 );
@@ -3019,6 +3040,11 @@ export default function AdminPage() {
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-1.5 flex-wrap">
+                            {item.collectionId && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                                {STUDY_COLLECTIONS.find((c) => c.id === item.collectionId)?.gradeBadge || item.collectionId}
+                              </span>
+                            )}
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
                               {item.grade}
                             </span>
@@ -4329,6 +4355,57 @@ export default function AdminPage() {
                 />
               </div>
 
+              {/* Target Educational Collection */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 block">
+                  Target Collection (ප්‍රවර්ගය / කාණ්ඩය): <span className="text-rose-400">*</span>
+                </label>
+                <select
+                  value={resCollectionId}
+                  onChange={(e) => {
+                    const chosenId = e.target.value;
+                    setResCollectionId(chosenId);
+                    const col = STUDY_COLLECTIONS.find((c) => c.id === chosenId);
+                    if (col) {
+                      setResGrade(col.title);
+                      if (chosenId === 'preschool') setResCategory('kids_sheets');
+                      else if (chosenId === 'ol_past' || chosenId === 'al_past') setResCategory('past_papers');
+                      else if (chosenId === 'short_notes') setResCategory('short_notes');
+                      else setResCategory('term_test');
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-purple-500/40 rounded-xl text-xs font-bold text-cyan-300 focus:outline-none focus:border-purple-400"
+                >
+                  <optgroup label="🎨 Pre-School & Kindergarten">
+                    <option value="preschool">Pre-School & Kindergarten (පෙර පාසල් රූප කොළ & Tracing)</option>
+                  </optgroup>
+                  <optgroup label="🎓 G.C.E. Past Papers & Marking Schemes">
+                    <option value="ol_past">G.C.E. O/L Past Papers & Marking Schemes (සා/පෙළ පසුගිය විභාග)</option>
+                    <option value="al_past">G.C.E. A/L Past Papers & Marking Schemes (උ/පෙළ පසුගිය විභාග)</option>
+                  </optgroup>
+                  <optgroup label="📑 Grade 6-13 Term Test Papers">
+                    <option value="grade_13">Grade 13 Term Test Papers (13 ශ්‍රේණිය)</option>
+                    <option value="grade_12">Grade 12 Term Test Papers (12 ශ්‍රේණිය)</option>
+                    <option value="grade_11">Grade 11 Term Test Papers (11 ශ්‍රේණිය / සා.පෙළ)</option>
+                    <option value="grade_10">Grade 10 Term Test Papers (10 ශ්‍රේණිය)</option>
+                    <option value="grade_9">Grade 9 Term Test Papers (9 ශ්‍රේණිය)</option>
+                    <option value="grade_8">Grade 8 Term Test Papers (8 ශ්‍රේණිය)</option>
+                    <option value="grade_7">Grade 7 Term Test Papers (7 ශ්‍රේණිය)</option>
+                    <option value="grade_6">Grade 6 Term Test Papers (6 ශ්‍රේණිය)</option>
+                  </optgroup>
+                  <optgroup label="🎒 Grade 1-5 & Scholarship Exam">
+                    <option value="grade_5">Grade 5 Scholarship Exam Papers (5 ශිෂ්‍යත්වය)</option>
+                    <option value="grade_4">Grade 4 Term Test Papers (4 ශ්‍රේණිය)</option>
+                    <option value="grade_3">Grade 3 Term Test Papers (3 ශ්‍රේණිය)</option>
+                    <option value="grade_2">Grade 2 Term Test Papers (2 ශ්‍රේණිය)</option>
+                    <option value="grade_1">Grade 1 Term Test Papers (1 ශ්‍රේණිය)</option>
+                  </optgroup>
+                  <optgroup label="📝 Revision Notes & Formulas">
+                    <option value="short_notes">A/L & O/L Short Notes & Formulas (කෙටි සටහන් & සූත්‍ර)</option>
+                  </optgroup>
+                </select>
+              </div>
+
               {/* Category & Grade */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -4338,29 +4415,22 @@ export default function AdminPage() {
                     onChange={(e) => setResCategory(e.target.value as StudyResourceCategory)}
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
                   >
-                    <option value="term_test">Grade 6-11 Term Test (වාර විභාග)</option>
-                    <option value="short_notes">A/L & O/L Short Notes (කෙටි සටහන්)</option>
-                    <option value="past_papers">O/L & A/L Past Papers (පසුගිය විභාග)</option>
-                    <option value="kids_sheets">Kids Coloring / Art Sheets (රූප කොළ)</option>
+                    <option value="term_test">Term Test Paper (වාර විභාග)</option>
+                    <option value="past_papers">Past Papers (පසුගිය විභාග)</option>
+                    <option value="short_notes">Short Notes (කෙටි සටහන්)</option>
+                    <option value="kids_sheets">Kids / Pre-School Sheets (රූප කොළ)</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300 block">Grade / Level:</label>
-                  <select
+                  <label className="text-xs font-bold text-slate-300 block">Grade / Level Name:</label>
+                  <input
+                    type="text"
                     value={resGrade}
                     onChange={(e) => setResGrade(e.target.value)}
+                    placeholder="e.g. Grade 10 or Pre-School"
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                  >
-                    <option value="Grade 6">Grade 6</option>
-                    <option value="Grade 7">Grade 7</option>
-                    <option value="Grade 8">Grade 8</option>
-                    <option value="Grade 9">Grade 9</option>
-                    <option value="Grade 10">Grade 10</option>
-                    <option value="Grade 11 / O/L">Grade 11 / O/L</option>
-                    <option value="A/L">A/L (Advanced Level)</option>
-                    <option value="Primary / Kids">Primary / Kids (පෙර පාසල් & 1-5)</option>
-                  </select>
+                  />
                 </div>
               </div>
 

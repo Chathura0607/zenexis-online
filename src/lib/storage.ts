@@ -714,162 +714,11 @@ export const addProductReview = (
 
 // --- STUDY & KIDS RESOURCES (Lead Magnet Hub) ---
 
-export const INITIAL_STUDY_RESOURCES: StudyResource[] = [
-  {
-    id: 'res-term-gr10-sci-2024',
-    title: '2024 Grade 10 Science 2nd Term Paper (Southern Province with Answers)',
-    titleSi: '2024 10 ශ්‍රේණිය විද්‍යාව 2 වන වාර ප්‍රශ්න පත්‍රය (දකුණු පළාත් පිළිතුරු සමග)',
-    category: 'term_test',
-    grade: 'Grade 10',
-    subject: 'Science',
-    year: '2024',
-    term: '2nd Term',
-    medium: 'sinhala',
-    downloadUrl: '/downloads/grade-10-science-2024.pdf',
-    fileType: 'PDF Document',
-    fileSize: '1.8 MB',
-    downloadsCount: 342,
-    isFeatured: true,
-    description: 'Southern Province Department of Education 2024 official 2nd term paper with full marking scheme.',
-    createdAt: '2024-10-15T08:00:00.000Z',
-  },
-  {
-    id: 'res-term-gr11-maths-2024',
-    title: '2024 Grade 11 Mathematics 3rd Term Model Paper & Step-by-Step Solutions',
-    titleSi: '2024 11 ශ්‍රේණිය ගණිතය 3 වන වාර ආදර්ශ ප්‍රශ්න පත්‍රය සහ පියවරෙන් පියවර විසඳුම්',
-    category: 'term_test',
-    grade: 'Grade 11 / O/L',
-    subject: 'Mathematics',
-    year: '2024',
-    term: '3rd Term',
-    medium: 'sinhala',
-    downloadUrl: '/downloads/grade-11-maths-model-2024.pdf',
-    fileType: 'PDF Document',
-    fileSize: '2.4 MB',
-    downloadsCount: 489,
-    isFeatured: true,
-    description: 'Essential model exam paper for Grade 11 students preparing for 3rd term evaluation.',
-    createdAt: '2024-10-20T08:00:00.000Z',
-  },
-  {
-    id: 'res-ol-hist-notes-2024',
-    title: 'G.C.E. O/L History Fast Revision Short Notes & Map Points (10-11 Complete)',
-    titleSi: 'සාමාන්‍ය පෙළ ඉතිහාසය සියලුම පාඩම් කෙටි සටහන් සහ අනිවාර්ය සිතියම් ලකුණු කිරීම්',
-    category: 'short_notes',
-    grade: 'Grade 11 / O/L',
-    subject: 'History',
-    year: '2024',
-    medium: 'sinhala',
-    downloadUrl: '/downloads/ol-history-short-notes.pdf',
-    fileType: 'PDF Document',
-    fileSize: '3.1 MB',
-    downloadsCount: 715,
-    isFeatured: true,
-    description: 'Full syllabus quick summary covering all kingdoms, treaties, and compulsory Sri Lanka & world maps.',
-    createdAt: '2024-09-10T08:00:00.000Z',
-  },
-  {
-    id: 'res-ol-sci-formulas-2024',
-    title: 'G.C.E. O/L Science Physics Formulas, Chemistry Units & Tables Sheet',
-    titleSi: 'සා.පෙළ විද්‍යාව භෞතික විද්‍යා සූත්‍ර, රසායන විද්‍යා මූලද්‍රව්‍ය & ඒකක සාරාංශය',
-    category: 'short_notes',
-    grade: 'Grade 11 / O/L',
-    subject: 'Science',
-    year: '2024',
-    medium: 'sinhala',
-    downloadUrl: '/downloads/ol-science-formulas.pdf',
-    fileType: 'PDF Document',
-    fileSize: '1.2 MB',
-    downloadsCount: 520,
-    isFeatured: true,
-    description: 'Quick reference sheet for formulas, SI units, and chemical activity series.',
-    createdAt: '2024-09-12T08:00:00.000Z',
-  },
-  {
-    id: 'res-al-comb-maths-notes',
-    title: 'G.C.E. A/L Combined Maths Trigonometry & Calculus Quick Revision Formula Book',
-    titleSi: 'උසස් පෙළ සංයුක්ත ගණිතය ත්‍රිකෝණමිතිය, කලනය සහ දෛශික සම්පූර්ණ සූත්‍ර අත්පොත',
-    category: 'short_notes',
-    grade: 'A/L',
-    subject: 'Combined Mathematics',
-    year: '2024',
-    medium: 'sinhala',
-    downloadUrl: '/downloads/al-combined-maths-formulas.pdf',
-    fileType: 'PDF Document',
-    fileSize: '2.8 MB',
-    downloadsCount: 640,
-    isFeatured: true,
-    description: 'Concise formula handbook for quick memory review before exams.',
-    createdAt: '2024-08-25T08:00:00.000Z',
-  },
-  {
-    id: 'res-ol-eng-past-2023',
-    title: 'G.C.E. O/L English Past Paper 2023 (Part I & II with Official Answer Scheme)',
-    titleSi: 'සා.පෙළ ඉංග්‍රීසි 2023 පසුගිය විභාග ප්‍රශ්න පත්‍රය (ලකුණු දීමේ පටිපාටිය සමග)',
-    category: 'past_papers',
-    grade: 'Grade 11 / O/L',
-    subject: 'English',
-    year: '2023',
-    medium: 'english',
-    downloadUrl: '/downloads/ol-english-past-2023.pdf',
-    fileType: 'PDF Document',
-    fileSize: '1.9 MB',
-    downloadsCount: 430,
-    isFeatured: false,
-    description: 'Official Department of Examinations paper with answers for essay, reading & grammar.',
-    createdAt: '2024-07-15T08:00:00.000Z',
-  },
-  {
-    id: 'res-kids-sinhala-hodiya',
-    title: 'Kids Sinhala Hodiya & English Alphabet Tracing Activity Worksheets',
-    titleSi: 'පෙර පාසල් & ප්‍රාථමික දරුවන්ට සිංහල හෝඩිය සහ ඉංග්‍රීසි අකුරු හුරු කරවන රූප කොළ',
-    category: 'kids_sheets',
-    grade: 'Primary / Kids',
-    subject: 'Sinhala & English Tracing',
-    medium: 'sinhala',
-    downloadUrl: '/downloads/kids-sinhala-english-tracing.pdf',
-    fileType: 'PDF Activity Pack',
-    fileSize: '4.2 MB',
-    downloadsCount: 890,
-    isFeatured: true,
-    description: 'Fun printable dot-tracing handwriting sheets designed for preschool and Grade 1-2 kids.',
-    createdAt: '2024-06-10T08:00:00.000Z',
-  },
-  {
-    id: 'res-kids-coloring-pack-20',
-    title: 'Cute Animals, Vehicles & Cartoon Coloring Book (20 Printable Picture Sheets)',
-    titleSi: 'පොඩිත්තන්ට පාට කිරීමට සතුන් සහ කාටූන් ලස්සන රූප කොළ 20 ක සම්පූර්ණ පැකේජය',
-    category: 'kids_sheets',
-    grade: 'Primary / Kids',
-    subject: 'Coloring & Art',
-    medium: 'sinhala',
-    downloadUrl: '/downloads/kids-coloring-pack.pdf',
-    fileType: 'PDF Coloring Book',
-    fileSize: '5.5 MB',
-    downloadsCount: 1120,
-    isFeatured: true,
-    description: 'Clean high-resolution coloring sheets ready to print on A4 papers.',
-    createdAt: '2024-06-15T08:00:00.000Z',
-  },
-  {
-    id: 'res-term-gr8-eng-2024',
-    title: '2024 Grade 8 English 2nd Term Paper - Southern Province Evaluation',
-    titleSi: '2024 8 ශ්‍රේණිය ඉංග්‍රීසි භාෂාව 2 වන වාර ප්‍රශ්න පත්‍රය (දකුණු පළාත)',
-    category: 'term_test',
-    grade: 'Grade 8',
-    subject: 'English',
-    year: '2024',
-    term: '2nd Term',
-    medium: 'english',
-    downloadUrl: '/downloads/grade-8-english-2024.pdf',
-    fileType: 'PDF Document',
-    fileSize: '1.4 MB',
-    downloadsCount: 260,
-    isFeatured: false,
-    description: 'Southern Province Grade 8 2nd term English paper with reading comprehension & writing tasks.',
-    createdAt: '2024-10-18T08:00:00.000Z',
-  },
-];
+/**
+ * Production Empty State: All papers and educational collections
+ * are managed directly from the Zenexis Admin Panel and Firestore database.
+ */
+export const INITIAL_STUDY_RESOURCES: StudyResource[] = [];
 
 export const getStoredResources = (): StudyResource[] => {
   if (!isClient) return INITIAL_STUDY_RESOURCES;
@@ -881,25 +730,50 @@ export const getStoredResources = (): StudyResource[] => {
     }
     const parsed: StudyResource[] = JSON.parse(data);
 
-    // Auto-migrate any old broken / placeholder links to clean valid sample downloads
-    let needsUpdate = false;
-    const migrated = parsed.map((item) => {
-      if (item.downloadUrl && (item.downloadUrl.includes('1zenexis-study-resources') || item.downloadUrl === '#')) {
-        const initial = INITIAL_STUDY_RESOURCES.find((r) => r.id === item.id);
-        if (initial) {
-          needsUpdate = true;
-          return { ...item, downloadUrl: initial.downloadUrl };
-        }
+    // Filter out old legacy sample papers (user requested removal so they start completely clean)
+    const filtered = parsed.filter(
+      (item) =>
+        !item.id.startsWith('res-term-') &&
+        !item.id.startsWith('res-ol-') &&
+        !item.id.startsWith('res-al-') &&
+        !item.id.startsWith('res-kids-')
+    );
+
+    // Ensure all items have a valid collectionId
+    let needsUpdate = filtered.length !== parsed.length;
+    const normalized = filtered.map((item) => {
+      if (!item.collectionId) {
+        needsUpdate = true;
+        const g = (item.grade || '').toLowerCase();
+        let colId = 'grade_10';
+        if (g.includes('pre') || g.includes('kinder')) colId = 'preschool';
+        else if (g.includes('13')) colId = 'grade_13';
+        else if (g.includes('12')) colId = 'grade_12';
+        else if (g.includes('11')) colId = 'grade_11';
+        else if (g.includes('10')) colId = 'grade_10';
+        else if (g.includes('9')) colId = 'grade_9';
+        else if (g.includes('8')) colId = 'grade_8';
+        else if (g.includes('7')) colId = 'grade_7';
+        else if (g.includes('6')) colId = 'grade_6';
+        else if (g.includes('5')) colId = 'grade_5';
+        else if (g.includes('4')) colId = 'grade_4';
+        else if (g.includes('3')) colId = 'grade_3';
+        else if (g.includes('2')) colId = 'grade_2';
+        else if (g.includes('1')) colId = 'grade_1';
+        else if (g.includes('a/l') || g.includes('al')) colId = 'al_past';
+        else if (g.includes('o/l') || g.includes('ol')) colId = 'ol_past';
+        else if (item.category === 'short_notes') colId = 'short_notes';
+        return { ...item, collectionId: colId };
       }
       return item;
     });
 
     if (needsUpdate) {
-      localStorage.setItem(KEYS.STUDY_RESOURCES, JSON.stringify(migrated));
-      return migrated;
+      localStorage.setItem(KEYS.STUDY_RESOURCES, JSON.stringify(normalized));
+      return normalized;
     }
 
-    return parsed;
+    return normalized;
   } catch {
     return INITIAL_STUDY_RESOURCES;
   }
